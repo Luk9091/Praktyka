@@ -1,0 +1,2 @@
+Przepisanie biblioteki do IPBus
+
