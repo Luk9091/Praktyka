@@ -78,8 +78,8 @@ class IPBus:
         '''
         transactionType = TransactionType["read"] if not FIFO else TransactionType["nonIncrementingRead"]
         header = TransactionHeader(transactionType, nWords, id=0)
-        toSend = header.toBytesArray()
-        toSend = [*toSend, *startRegisterAddress.to_bytes(4, "big")]
+        toSend = header.toBytesArray("little")
+        toSend = [*toSend, *startRegisterAddress.to_bytes(4, "little")]
 
         if not self._writingOK(toSend):
             return -1, None
@@ -93,9 +93,42 @@ class IPBus:
 
         readWords = []
         for i in range(4, len(data), 4):
-            readWords.append(int.from_bytes(data[i:i+4], "big"))
+            readWords.append(int.from_bytes(data[i:i+4], "little"))
         
         return header.infoCode, readWords
+
+    def write(self, startRegisterAddress: int, data: list[int], FIFO: bool):
+        '''
+            Write to register:
+                !!! Max write size: 255 words
+
+            Returns
+            -------
+            int
+                0 if success,
+                -1 if client error,
+                other within TransactionInfoCodecStringType
+        '''
+        if not data is list: data = [data]
+
+
+        transactionType = TransactionType["write"] if not FIFO else TransactionType["nonIncrementingWrite"]
+        header = TransactionHeader(transactionType, len(data), id=0)
+        toSend = header.toBytesArray()
+        toSend = [*toSend, *startRegisterAddress.to_bytes(4, "little")]
+
+        for word in data:
+            toSend = [*toSend, *word.to_bytes(4, "little")]
+
+        if not self._writingOK(toSend):
+            return -1
+
+        status, data = self._readingOK()
+        if not status:
+            return -1
+
+        header.fromBytesArray(data[0:4])
+        return header.infoCode
 
 
 
@@ -108,5 +141,6 @@ if __name__ == '__main__':
     # ipBus.statusRequest()
     # ipBus.statusResponse()
 
-    print(ipBus.read(0x10, 1, False))
+    print(ipBus.read(0x10, 2, False))
+    # print(ipBus.write(0x10, 0x16, False))
 
