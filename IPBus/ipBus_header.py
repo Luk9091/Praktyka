@@ -84,16 +84,16 @@ class TransactionHeader:
         else:
             return TransactionInfoCodeStringType[-1]
     
-    def toBytesArray(self):
-        return bytearray(int(self).to_bytes(4, "big"))
+    def toBytesArray(self, endian: str = "little"):
+        return bytearray(int(self).to_bytes(4, endian))
 
     
     def fromBytesArray(self, data: bytearray) -> None:
-        self.protocolVersion =  data[0] >> 4 & 0xF
-        self.transactionID   = (data[0] & 0xF) << 8 | data[1]
-        self.words           =  data[2]
-        self.typeID          =  data[3] >> 4 & 0xF
-        self.infoCode        =  data[3] & 0xF
+        self.protocolVersion =  data[3] >> 4 & 0xF
+        self.transactionID   = (data[3] & 0xF) << 8 | data[2]
+        self.words           =  data[1]
+        self.typeID          =  data[0] >> 4 & 0xF
+        self.infoCode        =  data[0] & 0xF
 
         
 
