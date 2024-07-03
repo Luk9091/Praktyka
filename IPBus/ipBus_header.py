@@ -30,11 +30,11 @@ TransactionInfoCodeStringType = {
 }
 
 class PacketHeader:
-    packetType: int                         # 4 bits
-    byteOrder: int = 0xF                    # 4 bits
-    packetID: int                           # 16 bits
-    rsvd: int = 0x0                         # 4 bits
-    protocolVersion: int  = 2               # 4 bits
+    packetType: int                                                         # 4 bits
+    byteOrder: int = 0xF                                                    # 4 bits
+    packetID: int                                                           # 16 bits
+    rsvd: int = 0x0                                                         # 4 bits
+    protocolVersion: int  = 2                                               # 4 bits
 
     def __init__(self, packetType: int = PacketType["status"], id: int = 0) -> None:
         self.packetType = packetType
@@ -43,6 +43,9 @@ class PacketHeader:
 
     def __int__(self) -> int:
         return self.protocolVersion << 28 | self.rsvd << 24 | self.packetID << 8 | self.byteOrder << 4 | self.packetType
+
+    def toBytesArray(self):
+        return bytearray(int(self).to_bytes(4, "big"))
 
     def fromBytesArray(self, data: bytearray) -> None:
         self.protocolVersion    = data[0] >> 4 & 0xF
@@ -60,11 +63,11 @@ class PacketHeader:
 
 
 class TransactionHeader:
-    infoCode: int = 0xF
-    typeID: int
-    words: int
-    transactionID: int
-    protocolVersion: int = 2
+    protocolVersion: int = 2                                                # 4 bits
+    transactionID: int                                                      # 12 bits
+    words: int                                                              # 8 bits
+    typeID: int                                                             # 4 bits
+    infoCode: int = 0xF                                                     # 4 bits
 
     def __init__(self, transactionType: int, nWords: int, id: int = 0) -> None:
         self.typeID = transactionType
@@ -81,12 +84,16 @@ class TransactionHeader:
         else:
             return TransactionInfoCodeStringType[-1]
     
-    # def fromBytesArray(self, data) -> None:
-    #     self.protocolVersion = data >> 28
-    #     self.transactionID = data >> 16 & 0xFFFF
-    #     self.words = data >> 8 & 0xFF
-    #     self.typeID = data >> 4 & 0xF
-    #     self.infoCode = data & 0xF
+    def toBytesArray(self):
+        return bytearray(int(self).to_bytes(4, "big"))
+
+    
+    def fromBytesArray(self, data: bytearray) -> None:
+        self.protocolVersion =  data[0] >> 4 & 0xF
+        self.transactionID   = (data[0] & 0xF) << 8 | data[1]
+        self.words           =  data[2]
+        self.typeID          =  data[3] >> 4 & 0xF
+        self.infoCode        =  data[3] & 0xF
 
         
 
@@ -114,7 +121,7 @@ class StatusPacket():
 
     def toBytesArray(self) -> bytearray:
         byte = []
-        byte = [*byte, *(int(self.packetHeader).to_bytes(4, "big"))]
+        byte = [*byte, *self.packetHeader.toBytesArray()]
         byte = [*byte, *self.MTU.to_bytes(4, "big")]
         byte = [*byte, *self.nResponseBuffers.to_bytes(4, "big")]
         byte = [*byte, *self.nextPacketID.to_bytes(4, "big")]
@@ -129,14 +136,20 @@ class StatusPacket():
         self.MTU                = int.from_bytes(data[4:8], "big")
         self.nResponseBuffers   = int.from_bytes(data[8:12], "big")
         self.nextPacketID       = int.from_bytes(data[12:16], "big")
-        # self.trafficHistory     = [] in data[16:32]
         for i in range(16):
             self.trafficHistory[i] = data[16+i]
         for i in range(8):
             self.controlHistory[i] = int.from_bytes(data[32+i*4 : 32 + (i+1)*4], "big")
 
     def __str__(self) -> str:
-        pass
+        string = f"PacketHeader: \n{self.packetHeader}\n"
+        string += f"MTU: {self.MTU}\n"
+        string += f"nResponseBuffers: {self.nResponseBuffers}\n"
+        string += f"nextPacketID: {self.nextPacketID}\n"
+        string += f"trafficHistory: {self.trafficHistory}\n"
+        string += f"controlHistory: {self.controlHistory}"
+
+        return string
 
 
 

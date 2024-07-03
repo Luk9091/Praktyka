@@ -13,8 +13,8 @@ class ADDRESS:
         return (self.address, self.port)
 
 class IPBus:
-    # UDP_ADDRESS = ["localhost", 50001]
     address = ADDRESS("localhost", 50001)
+    # address = ADDRESS("172.20.75.175", 50001)
     nextPackeID: int
     status = StatusPacket()
 
@@ -27,6 +27,7 @@ class IPBus:
 
 
     def _writingOK(self, toSend) -> bool:
+        if not toSend is bytearray: toSend = bytearray(toSend)
         n: int = self.socket.sendto(toSend, self.address())
         if (n == -1):
             print(f"Socket write error")
@@ -46,17 +47,6 @@ class IPBus:
             return False, None
         return True, data
 
-    def readRegisters(self, data: list[int], nWords: int, baseAddress: int, FIFO: bool) -> int:
-        if nWords == 0: return -1
-
-        extend  =2
-        if nWords > 255: extend = 3
-        if nWords + extend > maxWordsPerPacket: return -1
-
-        # self.readRequest(data, nWords, baseAddress, FIFO)
-
-    # def readRequest(self, data: list[int], nWords: int, baseAddress: int, FIFO: bool) -> int:
-
     def statusRequest(self) -> int:
         statusPacket = StatusPacket()
         if not self._writingOK(statusPacket.toBytesArray()):
@@ -67,9 +57,46 @@ class IPBus:
         status, data = self._readingOK()
         if not status:
             return -1
-
+        
         self.status.fromBytesArray(data)
-        return 0
+        return self.status.packetHeader.packetType
+
+    def read(self, startRegisterAddress: int, nWords: int, FIFO: bool) -> tuple[int, tuple[int, list[int]]]:
+        '''
+            Read from register:
+                !!! Max read size: 255 words
+
+            Returns
+            -------
+            int, bytearray
+                int : 
+                    0 if success,
+                    -1 if client error,
+                    other within TransactionInfoCodecStringType
+                list[int]:
+                    data[1] : list[int] : list of data read
+        '''
+        transactionType = TransactionType["read"] if not FIFO else TransactionType["nonIncrementingRead"]
+        header = TransactionHeader(transactionType, nWords, id=0)
+        toSend = header.toBytesArray()
+        toSend = [*toSend, *startRegisterAddress.to_bytes(4, "big")]
+
+        if not self._writingOK(toSend):
+            return -1, None
+
+        
+        status, data = self._readingOK()
+        if not status:
+            return -1, None
+
+        header.fromBytesArray(data[0:4])
+
+        readWords = []
+        for i in range(4, len(data), 4):
+            readWords.append(int.from_bytes(data[i:i+4], "big"))
+        
+        return header.infoCode, readWords
+
 
 
 
@@ -78,6 +105,8 @@ class IPBus:
 if __name__ == '__main__':
     ipBus = IPBus()
 
-    ipBus.statusRequest()
-    ipBus.statusResponse()
+    # ipBus.statusRequest()
+    # ipBus.statusResponse()
+
+    print(ipBus.read(0x10, 1, False))
 
