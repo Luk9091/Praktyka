@@ -131,6 +131,36 @@ class IPBus:
         return header.infoCode
 
 
+    def readModifyWriteBits(self, registerAddress: int, ANDmask: int, ORmask: int) -> int:
+        header = TransactionHeader(TransactionType["RMWbits"], 1, id=0)
+        toSend = header.toBytesArray()
+        toSend = [*toSend, *registerAddress.to_bytes(4, "little")]
+        toSend = [*toSend, *ANDmask.to_bytes(4, "little")]
+        toSend = [*toSend, *ORmask.to_bytes(4, "little")]
+
+        if not self._writingOK(toSend):
+            return -1
+
+        status, data = self._readingOK()
+        if not status:
+            return -1
+        
+        return int.from_bytes(data[0:4], "little")
+
+    def readModifyWriteSum(self, registerAddress: int, addend: int) -> int:
+        header = TransactionHeader(TransactionType["RMWsum"], 1, id=0)
+        toSend = header.toBytesArray()
+        toSend = [*toSend, *registerAddress.to_bytes(4, "little")]
+        toSend = [*toSend, *addend.to_bytes(4, "little")]
+
+        if not self._writingOK(toSend):
+            return -1
+
+        status, data = self._readingOK()
+        if not status:
+            return -1
+
+        return int.from_bytes(data[0:4], "little")
 
 
 
