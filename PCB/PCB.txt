@@ -1,0 +1,4 @@
+1) złącza oscyloskopowe - haczyki do złącz X1 i X4 + 2 masy
+2) reszta na goldpiny(1 x 6) 1 - masa 5 sygnałowych
+3) napisy sygnałów
+4) pogopin do rezystorów r57 0dc1
