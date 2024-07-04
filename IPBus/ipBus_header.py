@@ -44,8 +44,8 @@ class PacketHeader:
     def __int__(self) -> int:
         return self.protocolVersion << 28 | self.rsvd << 24 | self.packetID << 8 | self.byteOrder << 4 | self.packetType
 
-    def toBytesArray(self):
-        return bytearray(int(self).to_bytes(4, "big"))
+    def toBytesArray(self, endian = "big"):
+        return bytearray(int(self).to_bytes(4, endian))
 
     def fromBytesArray(self, data: bytearray) -> None:
         self.protocolVersion    = data[0] >> 4 & 0xF
@@ -155,7 +155,7 @@ class StatusPacket():
 
 
 if __name__ == '__main__':
-    # print("It is NOT a main module!")
+    print("It is NOT a main module!")
     # statusPacket = StatusPacket()
     # print(statusPacket.toBytes())
 
@@ -170,9 +170,9 @@ if __name__ == '__main__':
     # print(PacketType["status"])
     # print(PacketType["resend"])
 
-    print("PacketHeader:")
-    packetHeader = PacketHeader(PacketType["status"], 0)
-    print(packetHeader)
+    # print("PacketHeader:")
+    # packetHeader = PacketHeader(PacketType["status"], 0)
+    # print(packetHeader)
     # data: int = int(packetHeader)
     # print(hex(data))
 

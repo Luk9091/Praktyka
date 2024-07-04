@@ -6,15 +6,15 @@ from ipBus_header import *
 
 @dataclass
 class ADDRESS:
-    address: str
+    IP: str
     port: int
 
     def __call__(self) -> tuple:
-        return (self.address, self.port)
+        return (self.IP, self.port)
 
 class IPBus:
-    address = ADDRESS("localhost", 50001)
-    # address = ADDRESS("172.20.75.175", 50001)
+    # address = ADDRESS("localhost", 50001)
+    address = ADDRESS("172.20.75.175", 50001)
     nextPackeID: int
     status = StatusPacket()
 
@@ -26,7 +26,7 @@ class IPBus:
         self.socket.close()
 
 
-    def _writingOK(self, toSend) -> bool:
+    def __writing(self, toSend) -> bool:
         if not toSend is bytearray: toSend = bytearray(toSend)
         n: int = self.socket.sendto(toSend, self.address())
         if (n == -1):
@@ -37,7 +37,7 @@ class IPBus:
             return False
         return True
 
-    def _readingOK(self) -> tuple[bool, bytearray]:
+    def __reading(self) -> tuple[bool, bytearray]:
         data: bytes = self.socket.recvfrom(maxWordsPerPacket)
         readAddress = ADDRESS(data[1][0], data[1][1])
         data = data[0]
@@ -49,19 +49,19 @@ class IPBus:
 
     def statusRequest(self) -> int:
         statusPacket = StatusPacket()
-        if not self._writingOK(statusPacket.toBytesArray()):
+        if not self.__writing(statusPacket.toBytesArray()):
             return -1
         return 0
 
     def statusResponse(self) -> int:
-        status, data = self._readingOK()
+        status, data = self.__reading()
         if not status:
             return -1
         
         self.status.fromBytesArray(data)
         return self.status.packetHeader.packetType
 
-    def read(self, startRegisterAddress: int, nWords: int, FIFO: bool) -> tuple[int, tuple[int, list[int]]]:
+    def read(self, startRegisterAddress: int, nWords: int, FIFO: bool) -> tuple[int, list[int]]:
         '''
             Read from register:
                 !!! Max read size: 255 words
@@ -78,21 +78,23 @@ class IPBus:
         '''
         transactionType = TransactionType["read"] if not FIFO else TransactionType["nonIncrementingRead"]
         header = TransactionHeader(transactionType, nWords, id=0)
-        toSend = header.toBytesArray("little")
+        packetHeader = PacketHeader(PacketType["control"])
+        toSend = packetHeader.toBytesArray("little")
+        toSend = [*toSend, *header.toBytesArray("little")]
         toSend = [*toSend, *startRegisterAddress.to_bytes(4, "little")]
 
-        if not self._writingOK(toSend):
+        if not self.__writing(toSend):
             return -1, None
 
         
-        status, data = self._readingOK()
+        status, data = self.__reading()
         if not status:
             return -1, None
 
         header.fromBytesArray(data[0:4])
 
         readWords = []
-        for i in range(4, len(data), 4):
+        for i in range(8, len(data), 4):
             readWords.append(int.from_bytes(data[i:i+4], "little"))
         
         return header.infoCode, readWords
@@ -109,21 +111,23 @@ class IPBus:
                 -1 if client error,
                 other within TransactionInfoCodecStringType
         '''
-        if not data is list: data = [data]
+        if not isinstance(data, list): data = [data]
 
 
+        packetHeader = PacketHeader(PacketType["control"])
         transactionType = TransactionType["write"] if not FIFO else TransactionType["nonIncrementingWrite"]
         header = TransactionHeader(transactionType, len(data), id=0)
-        toSend = header.toBytesArray()
+        toSend = packetHeader.toBytesArray("little")
+        toSend = [*toSend, *header.toBytesArray()]
         toSend = [*toSend, *startRegisterAddress.to_bytes(4, "little")]
 
         for word in data:
             toSend = [*toSend, *word.to_bytes(4, "little")]
 
-        if not self._writingOK(toSend):
+        if not self.__writing(toSend):
             return -1
 
-        status, data = self._readingOK()
+        status, data = self.__reading()
         if not status:
             return -1
 
@@ -133,44 +137,113 @@ class IPBus:
 
     def readModifyWriteBits(self, registerAddress: int, ANDmask: int, ORmask: int) -> int:
         header = TransactionHeader(TransactionType["RMWbits"], 1, id=0)
-        toSend = header.toBytesArray()
+        packetHeader = PacketHeader(PacketType["control"])
+        toSend = packetHeader.toBytesArray("little")
+        toSend = [*toSend, *header.toBytesArray()]
         toSend = [*toSend, *registerAddress.to_bytes(4, "little")]
         toSend = [*toSend, *ANDmask.to_bytes(4, "little")]
         toSend = [*toSend, *ORmask.to_bytes(4, "little")]
 
-        if not self._writingOK(toSend):
+        if not self.__writing(toSend):
             return -1
 
-        status, data = self._readingOK()
+        status, data = self.__reading()
         if not status:
             return -1
         
-        return int.from_bytes(data[0:4], "little")
+        return int.from_bytes(data[8:12], "little")
 
     def readModifyWriteSum(self, registerAddress: int, addend: int) -> int:
         header = TransactionHeader(TransactionType["RMWsum"], 1, id=0)
-        toSend = header.toBytesArray()
+        packetHeader = PacketHeader(PacketType["control"])
+        toSend = packetHeader.toBytesArray("little")
+        toSend = [*toSend, *header.toBytesArray()]
+        # toSend = header.toBytesArray()
         toSend = [*toSend, *registerAddress.to_bytes(4, "little")]
         toSend = [*toSend, *addend.to_bytes(4, "little")]
 
-        if not self._writingOK(toSend):
+        if not self.__writing(toSend):
             return -1
 
-        status, data = self._readingOK()
+        status, data = self.__reading()
         if not status:
             return -1
 
-        return int.from_bytes(data[0:4], "little")
+        return int.from_bytes(data[8:12], "little")
 
 
 
 
 if __name__ == '__main__':
+    from colorama import init as colorama_init
+    from colorama import Fore, Style
+    import sys
+    
+
+    colorama_init(autoreset=True)
+    print(f"{Fore.GREEN}IPBus interface unit test:")
     ipBus = IPBus()
 
-    # ipBus.statusRequest()
-    # ipBus.statusResponse()
+    print()
+    ipBus.statusRequest()
+    if ipBus.statusResponse() >= 0:
+        print(ipBus.status)
+        print(f"{Fore.GREEN}Status request success")
+    else:
+        print(f"{Fore.RED}Status request failed")
+        sys.exit(1)
 
-    print(ipBus.read(0x10, 2, False))
-    # print(ipBus.write(0x10, 0x16, False))
 
+    save = 0x16
+    status = ipBus.write(0x1004, save, False)
+    if status >= 0:
+        print(f"{Fore.GREEN}Write success")
+        print(TransactionInfoCodeStringType[status])
+    else:
+        print(f"{Fore.RED}Write failed")
+        sys.exit(1)
+
+
+    status, data = ipBus.read(0x1004, 1, False)
+    if status >= 0 and data[0] == save:
+        print(f"{Fore.GREEN}Read success")
+        print(f"Read data: {data}")
+    else:
+        print(f"{Fore.RED}Read failed")
+        sys.exit(1)
+
+    ipBus.write(0x1004, 0xFFFF0000, False)
+    ipBus.readModifyWriteBits(0x1004, 0xFF00_0000, 0xFF)
+    status, data = ipBus.read(0x1004, 1, False)
+    if status >= 0 and data[0] == 0xFF0000FF:
+        print(f"{Fore.GREEN}ReadModifyWriteBits success")
+        print(f"Read data: {data}")
+    else:
+        print(f"{Fore.RED}ReadModifyWriteBits failed")
+        print(f"Read data: {data}")
+        sys.exit(1)
+
+    
+    ipBus.write(0x1004, 0x01, False)
+    ipBus.readModifyWriteSum(0x1004, 0x10)
+    status, data = ipBus.read(0x1004, 1, False)
+    if status >= 0 and data[0] == 0x11:
+        print(f"{Fore.GREEN}ReadModifyWriteSum success")
+        print(f"Read data: {data}")
+    else:
+        print(f"{Fore.RED}ReadModifyWriteSum failed")
+        sys.exit(1)
+
+
+
+    ipBus.write(0x1004, [0x01, 0x02], False)
+    status, data = ipBus.read(0x1004, 2, False)
+    if status >= 0 and data == [0x01, 0x02]:
+        print(f"{Fore.GREEN}Read success")
+        print(f"Read data: {data}")
+    else:
+        print(f"{Fore.RED}Read failed")
+        sys.exit(1)
+
+    
+    print(f"{Fore.GREEN}Unit test success")
