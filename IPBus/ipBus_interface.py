@@ -1,7 +1,7 @@
 import socket
 from dataclasses import dataclass
 
-from ipBus_header import *
+from .ipBus_header import *
 
 
 @dataclass
