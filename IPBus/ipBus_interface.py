@@ -1,7 +1,10 @@
 import socket
 from dataclasses import dataclass
 
-from .ipBus_header import *
+if __name__ == '__main__':
+    from ipBus_header import *
+else:
+    from .ipBus_header import *
 
 
 @dataclass
@@ -27,7 +30,7 @@ class IPBus:
 
 
     def __writing(self, toSend) -> bool:
-        if not toSend is bytearray: toSend = bytearray(toSend)
+        if not isinstance(toSend, bytearray): toSend = bytearray(toSend)
         n: int = self.socket.sendto(toSend, self.address())
         if (n == -1):
             print(f"Socket write error")
@@ -49,7 +52,11 @@ class IPBus:
 
     def statusRequest(self) -> int:
         statusPacket = StatusPacket()
-        if not self.__writing(statusPacket.toBytesArray()):
+        packetHeader = PacketHeader(PacketType["status"])
+        # toSend = packetHeader.toBytesArray("little")
+        # toSend = [*toSend, *statusPacket.toBytesArray()]
+        toSend = statusPacket.toBytesArray()
+        if not self.__writing(bytearray(toSend)):
             return -1
         return 0
 

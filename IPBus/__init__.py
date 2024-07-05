@@ -6,7 +6,7 @@ by Łukasz Przystupa
 
 
 from IPBus.ipBus_interface import IPBus
-from IPBus.ipBus_header import TransactionInfoCodeStringType
+from IPBus.ipBus_header import TransactionInfoCodeStringType, PacketType
 
 
 __version__ = '1.0'
