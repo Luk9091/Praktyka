@@ -23,7 +23,7 @@ class IPBus:
 
     def __init__(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        
+        self.socket.settimeout(1)
 
     def __del__(self):
         self.socket.close()
@@ -32,6 +32,11 @@ class IPBus:
     def __writing(self, toSend) -> bool:
         if not isinstance(toSend, bytearray): toSend = bytearray(toSend)
         n: int = self.socket.sendto(toSend, self.address())
+        # try:
+        #     n: int = self.socket.sendto(toSend, self.address())
+        # except socket.timeout:
+        #     print(f"Timeout error")
+        #     return False
         if (n == -1):
             print(f"Socket write error")
             return False
@@ -42,6 +47,12 @@ class IPBus:
 
     def __reading(self) -> tuple[bool, bytearray]:
         data: bytes = self.socket.recvfrom(maxWordsPerPacket)
+        # try:
+        #     data: bytes = self.socket.recvfrom(maxWordsPerPacket)
+        # except socket.timeout:
+        #     print(f"Timeout error")
+        #     return False, None
+
         readAddress = ADDRESS(data[1][0], data[1][1])
         data = data[0]
         

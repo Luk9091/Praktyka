@@ -1,5 +1,6 @@
 import sys
 import IPBus
+from socket import timeout as TimeoutError
 import read as read_handler
 import write as write_handler
 
@@ -21,7 +22,7 @@ def read_status(*args):
     if ipBus.statusResponse() == IPBus.PacketType["status"]:
         return "IPBus status OK"
     
-    return ipBus.status
+    return ""
 
 def readToString(startAddress: int, data: list[int], FIFO: bool) -> str:
     string = ""
@@ -112,4 +113,7 @@ if __name__ == "__main__":
         print("Missing arguments. Usage: %s" % cmd)
         sys.exit(-1)
     
-    print(COMMANDS[cmd]["handler"](*args))
+    try:
+        print(COMMANDS[cmd]["handler"](*args))
+    except TimeoutError:
+        print("Timeout error")
