@@ -2,3 +2,11 @@
 2) reszta na goldpiny(1 x 6) 1 - masa 5 sygnałowych
 3) napisy sygnałów
 4) pogopin do rezystorów r57 0dc1
+
+MCU:
+STM:
+1): https://www.mouser.pl/ProductDetail/STMicroelectronics/STM32F042K6T6?qs=4b8myOmUP%252BsYBBEp2ZwbyQ%3D%3D
+
+Microchip:
+1): https://www.tme.eu/pl/details/atmega64m1-au/rodzina-avr-8-bit/microchip-technology/
+2): https://www.tme.eu/pl/details/atmega16m1-au/rodzina-avr-8-bit/microchip-technology/
