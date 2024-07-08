@@ -14,6 +14,7 @@ class State(Enum):
     ERROR = 100
 
 def _exit(*args: list, ipBus=None) -> None:
+    print()
     print("Exiting...")
     exit(0)
     # return Error.EXIT, "Exiting..."
@@ -96,7 +97,7 @@ def CLI():
             else:
                 print(f"Error: {ans}")
     except KeyboardInterrupt:
-        exit(0)
+        _exit()
         
 
 def read_file():
