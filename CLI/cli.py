@@ -153,7 +153,7 @@ PARAMS = {
     "-o"    : {"minargs": 2, "handler": None,       "nextState": State.CLI,         "usage": "[file] -- store output to file | default: only display on stdout"},
     "--ip"  : {"minargs": 2, "handler": set_ip,     "nextState": State.CLI,         "usage": "[ip] ([port])"},
     "--csv" : {"minargs": 0, "handler": CSV_format, "nextState": State.CLI,         "usage": "output in csv format"},
-    "--help": {"minargs": 0, "handler": param_help, "nextState": State.EXIT,        "usage": "display help"},
+    "--help": {"minargs": 0, "handler": param_help, "nextState": State.OK_EXIT,     "usage": "display help"},
 }
 
 
