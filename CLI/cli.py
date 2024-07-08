@@ -138,7 +138,7 @@ COMMANDS = {
     "read"   : {"minargs": 1, "handler": read,          "usage": "read [address | name] ([-n] [value]) ([--FIFO])"},
     "write"  : {"minargs": 2, "handler": write,         "usage": "write [address | name] [value] ([values]...) ([--FIFO])"},
     "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [mask] [value]"},
-    "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RWMsum [address | name] [value]"},
+    "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RMWsum [address | name] [value]"},
     "help"   : {"minargs": 0, "handler": help,          "usage": "help ([command])"},
     "exit"   : {"minargs": 0, "handler": _exit,         "usage": "Just exit"},
 }
