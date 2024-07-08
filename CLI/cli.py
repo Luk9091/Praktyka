@@ -8,18 +8,17 @@ from executable import *
 ipBus = IPBus.IPBus()
 
 class State(Enum):
-    ERROR = -1
-    EXIT = 0
     CLI = 1
     READ_FILE = 2
-    HELP = 3
+    EXIT = 3
+    ERROR = 100
 
-def _exit(*args: list, ipBus=ipBus) -> None:
+def _exit(*args: list, ipBus=None) -> None:
     print("Exiting...")
     exit(0)
     # return Error.EXIT, "Exiting..."
 
-def help(*args, ipBus: IPBus.IPBus):
+def help(*args, ipBus = None):
     if len(args) == 0:
         return Error.OK, "Available commands: %s" % ", ".join(COMMANDS.keys())
 
@@ -28,6 +27,11 @@ def help(*args, ipBus: IPBus.IPBus):
     except KeyError:
         status, ans = Error.INVALID_COMMAND, "Command not found"
     return status, ans
+
+def param_help(*args, ipBus = None):
+    print("Available parameters: %s" % ", ".join(PARAMS.keys()))
+    for key in PARAMS.keys():
+        print(f"\t{key}: {PARAMS[key]['usage']}")
 
 def execute_command(*args) -> tuple[Error, str]:
     args = list(args)
@@ -45,6 +49,10 @@ def execute_command(*args) -> tuple[Error, str]:
     except KeyError:
         ans = "Invalid command. \nValid: %s" % ", ".join(COMMANDS.keys())
         return Error.INVALID_COMMAND, ans
+
+    if "--help" in args:
+        status, ans = help(cmd)
+        return status, ans
     
     error, ans = COMMANDS[cmd]["handler"](*args, ipBus=ipBus)
     return error, ans
@@ -56,13 +64,15 @@ def Init(args: list) -> State:
         if cmd in PARAMS.keys():
             args.remove(cmd)
             PARAMS[cmd]["handler"](*args, ipBus=ipBus)
+            if PARAMS[cmd]["nextState"].value > state.value:
+                state = PARAMS[cmd]["nextState"]
             continue
 
     for cmd in args:
         if cmd in COMMANDS.keys():
             try:
-                state, ans = execute_command(*args)
-                if state == Error.OK:
+                status, ans = execute_command(*args)
+                if status == Error.OK:
                     print(ans)
                 else:
                     print(f"Error: {ans}")
@@ -119,9 +129,10 @@ COMMANDS = {
 }
 
 PARAMS = {
-    "-i" : {"minargs": 2, "handler": None},
-    "-o" : {"minargs": 2, "handler": None},
-    "--ip":{"minargs": 2, "handler": set_ip},
+    "-i"    : {"minargs": 2, "handler": None,       "nextState": State.READ_FILE,   "usage": "[file] -- read from file | default: stdin"},
+    "-o"    : {"minargs": 2, "handler": None,       "nextState": State.CLI,         "usage": "[file] -- store output to file | default: only display on stdout"},
+    "--ip"  : {"minargs": 2, "handler": set_ip,     "nextState": State.CLI,         "usage": "[ip] ([port])"},
+    "--help": {"minargs": 0, "handler": param_help, "nextState": State.EXIT,        "usage": "display help"},
 }
 
 
