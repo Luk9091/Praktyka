@@ -1,11 +1,16 @@
 import sys
 from socket import timeout as TimeoutError
 from enum import Enum
+from pathlib import Path
 
 import IPBus
 from error_codes import Error
 from executable import *
 ipBus = IPBus.IPBus()
+
+
+outputFile = None
+csvFormat = False
 
 class State(Enum):
     CLI = 1
@@ -17,7 +22,9 @@ def _exit(*args: list, ipBus=None) -> None:
     print()
     print("Exiting...")
     exit(0)
-    # return Error.EXIT, "Exiting..."
+
+def CSV_format(*args, ipBus=None):
+    csvFormat = True
 
 def help(*args, ipBus = None):
     if len(args) == 0:
@@ -25,6 +32,7 @@ def help(*args, ipBus = None):
 
     try:
         status, ans = Error.OK, COMMANDS[args[0]]["usage"]
+        ans = f" >> {ans}"
     except KeyError:
         status, ans = Error.INVALID_COMMAND, "Command not found"
     return status, ans
@@ -55,7 +63,11 @@ def execute_command(*args) -> tuple[Error, str]:
         status, ans = help(cmd)
         return status, ans
     
-    error, ans = COMMANDS[cmd]["handler"](*args, ipBus=ipBus)
+    try:
+        error, ans = COMMANDS[cmd]["handler"](*args, ipBus=ipBus)
+    except ValueError:
+        return Error.INVALID_COMMAND, "Invalid arguments"
+
     return error, ans
 
 def Init(args: list) -> State:
@@ -100,7 +112,10 @@ def CLI():
         _exit()
         
 
-def read_file():
+def write_file():
+    pass
+
+def read_file(*args):
     pass
 
 def main():
@@ -110,11 +125,10 @@ def main():
 
 
 STATE = {
-    State.ERROR: exit,
-    State.CLI: CLI,
-    State.READ_FILE: read_file,
-    # State.HELP: help,
-    State.EXIT: exit
+    State.ERROR     : {"handler": _exit,        "args": []},
+    State.CLI       : {"handler": CLI,          "args": []},
+    State.READ_FILE : {"handler": read_file,    "args": []},
+    State.EXIT      : {"handler": _exit,        "args": []},
 }
 
 
@@ -133,6 +147,7 @@ PARAMS = {
     "-i"    : {"minargs": 2, "handler": None,       "nextState": State.READ_FILE,   "usage": "[file] -- read from file | default: stdin"},
     "-o"    : {"minargs": 2, "handler": None,       "nextState": State.CLI,         "usage": "[file] -- store output to file | default: only display on stdout"},
     "--ip"  : {"minargs": 2, "handler": set_ip,     "nextState": State.CLI,         "usage": "[ip] ([port])"},
+    "--csv" : {"minargs": 0, "handler": CSV_format, "nextState": State.CLI,         "usage": "output in csv format"},
     "--help": {"minargs": 0, "handler": param_help, "nextState": State.EXIT,        "usage": "display help"},
 }
 

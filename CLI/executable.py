@@ -78,7 +78,7 @@ def write(*args, ipBus: IPBus.IPBus):
         status = ipBus.write(args[0], args[1:], write_handler.PARAMS["--FIFO"]["value"])
     except TimeoutError:
         return Error.TIMEOUT, "Timeout error"
-    if status == Error.OK:
+    if status == Error.OK.value:
         return Error.OK, "Write successful"
     else:
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]

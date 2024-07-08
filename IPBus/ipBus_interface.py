@@ -16,8 +16,8 @@ class ADDRESS:
         return (self.IP, self.port)
 
 class IPBus:
-    address = ADDRESS("localhost", 50001)
-    # address = ADDRESS("172.20.75.175", 50001)
+    # address = ADDRESS("localhost", 50001)
+    address = ADDRESS("172.20.75.175", 50001)
     nextPackeID: int
     status = StatusPacket()
 
@@ -136,10 +136,7 @@ class IPBus:
         if not status:
             return -1
 
-# ! Sprawdzić czy na pewno jest to pierwsze cztery bajty
-# !  Czy może drugie?
-        print(data)
-        header.fromBytesArray(data[4:8])
+        header.fromBytesArray(data[0:4])
         return header.infoCode
 
 
