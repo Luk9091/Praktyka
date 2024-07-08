@@ -1,119 +1,130 @@
 import sys
-import IPBus
 from socket import timeout as TimeoutError
-import read as read_handler
-import write as write_handler
+from enum import Enum
 
+import IPBus
+from error_codes import Error
+from executable import *
 ipBus = IPBus.IPBus()
 
-def set_ip(*args):
-    if (args is None) or (len(args) == 0):
-        return "Current IP: %s:%d" % (ipBus.address.IP, ipBus.address.port)
+class State(Enum):
+    ERROR = -1
+    EXIT = 0
+    CLI = 1
+    READ_FILE = 2
+    HELP = 3
+
+def _exit(*args: list, ipBus=ipBus) -> None:
+    print("Exiting...")
+    exit(0)
+    # return Error.EXIT, "Exiting..."
+
+def help(*args, ipBus: IPBus.IPBus):
+    if len(args) == 0:
+        return Error.OK, "Available commands: %s" % ", ".join(COMMANDS.keys())
+
+    try:
+        status, ans = Error.OK, COMMANDS[args[0]]["usage"]
+    except KeyError:
+        status, ans = Error.INVALID_COMMAND, "Command not found"
+    return status, ans
+
+def execute_command(*args) -> tuple[Error, str]:
+    args = list(args)
+    if len(args) == 0:
+        ans = "Missing command. \nValid: %s" % ", ".join(COMMANDS.keys())
+        return Error.INVALID_COMMAND, ans
+
+    cmd = args[0].lower()
+    args = args[1:]
+
+    try:
+        if len(args) < COMMANDS[cmd]["minargs"]:
+            ans = "Missing arguments.\nUsage: %s" % COMMANDS[cmd]["usage"]
+            return Error.INVALID_COMMAND, ans
+    except KeyError:
+        ans = "Invalid command. \nValid: %s" % ", ".join(COMMANDS.keys())
+        return Error.INVALID_COMMAND, ans
+    
+    error, ans = COMMANDS[cmd]["handler"](*args, ipBus=ipBus)
+    return error, ans
+
+def Init(args: list) -> State:
+    state = State.CLI
+
+    for cmd in args:
+        if cmd in PARAMS.keys():
+            args.remove(cmd)
+            PARAMS[cmd]["handler"](*args, ipBus=ipBus)
+            continue
+
+    for cmd in args:
+        if cmd in COMMANDS.keys():
+            try:
+                state, ans = execute_command(*args)
+                if state == Error.OK:
+                    print(ans)
+                else:
+                    print(f"Error: {ans}")
+            except TimeoutError:
+                print("Timeout error")
+            finally:
+                return State.EXIT
+
+    return state
+
         
-    ipBus.address.IP = args[0]
+def CLI():
+    try:
+        while True:
+            read = input(f"{ipBus.address.IP} << ")
+            read = read.split(" ")
+            
+            status, ans = execute_command(*read)
+            if status == Error.OK:
+                print(ans)
+            else:
+                print(f"Error: {ans}")
+    except KeyboardInterrupt:
+        exit(0)
+        
 
-    if len(args) > 1:
-        ipBus.address.port = int(args[1])
+def read_file():
+    pass
 
-    return "IP address set to %s:%d" % (ipBus.address.IP, ipBus.address.port)
-
-def read_status(*args):
-    ipBus.statusRequest()
-    if ipBus.statusResponse() == IPBus.PacketType["status"]:
-        return "IPBus status OK"
-    
-    return ""
-
-def readToString(startAddress: int, data: list[int], FIFO: bool) -> str:
-    string = ""
-
-    if not FIFO:
-        for i in range(len(data)):
-            string += "0x%08X: 0x%08X\n" % (startAddress + i, data[i])
-    else:
-        string =  "0x%08X:" % startAddress
-        for i in range(len(data)):
-            string += " 0x%08X" % data[i]
-
-    return string
-
-def read(*args):
-    args = list(args)
-    for key in read_handler.PARAMS.keys():
-        if key in args:
-            read_handler.PARAMS[key]["value"] = read_handler.PARAMS[key]["handler"](args)
-
-    for i in range(len(args)):
-        args[i] = int(args[i], 16)
+def main():
+    args = sys.argv[1:]
+    status = Init(args)
+    STATE[status]()
 
 
-
-    status, data = ipBus.read(args[0], read_handler.PARAMS["-n"]["value"], read_handler.PARAMS["--FIFO"]["value"])
-
-    if (status != 0):
-        return IPBus.TransactionInfoCodeStringType[status]
-    
-    return readToString(args[0], data, read_handler.PARAMS["--FIFO"]["value"])
-
-
-def write(*args):
-    args = list(args)
-
-    for key in read_handler.PARAMS.keys():
-        if key in args:
-            write_handler.PARAM[key]["value"] = write_handler.PARAM[key]["handler"](args)
-
-    for i in range(len(args)):
-        args[i] = int(args[i], 16)
-
-    return ipBus.write(args[0], args[1:], write_handler.PARAMS["--FIFO"]["value"])
-
-def RMWbits(*args):
-    args = list(args)
-
-    for i in range(len(args)):
-        args[i] = int(args[i], 16)
-
-    data = ipBus.readModifyWriteBits(args[0], args[1], args[2])
-    return readToString(args[0], [data], False)
-
-def RMWsum(*sum):
-    args = list(sum)
-    for i in range(len(args)):
-        args[i] = int(args[i], 16)
-
-    data = ipBus.readModifyWriteSum(args[0], args[1])
-    return readToString(args[0], [data], False)
-
+STATE = {
+    State.ERROR: exit,
+    State.CLI: CLI,
+    State.READ_FILE: read_file,
+    # State.HELP: help,
+    State.EXIT: exit
+}
 
 
 COMMANDS = {
-    "ip"     : {"minargs": 0, "handler": set_ip},
-    "status" : {"minargs": 0, "handler": read_status},
-    "read"   : {"minargs": 1, "handler": read},
-    "write"  : {"minargs": 2, "handler": write},
-    "rmwbits": {"minargs": 3, "handler": RMWbits},
-    "rmwsum" : {"minargs": 1, "handler": RMWsum},
+    "ip"     : {"minargs": 0, "handler": set_ip,        "usage": "ip [ip] ([port])"},
+    "status" : {"minargs": 0, "handler": read_status,   "usage": "status ([--timeout] [value])"},
+    "read"   : {"minargs": 1, "handler": read,          "usage": "read [address | name] ([-n] [value]) ([--FIFO])"},
+    "write"  : {"minargs": 2, "handler": write,         "usage": "write [address | name] [value] ([values]...) ([--FIFO])"},
+    "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [mask] [value]"},
+    "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RWMsum [address | name] [value]"},
+    "help"   : {"minargs": 0, "handler": help,          "usage": "help ([command])"},
+    "exit"   : {"minargs": 0, "handler": _exit,         "usage": "Just exit"},
+}
+
+PARAMS = {
+    "-i" : {"minargs": 2, "handler": None},
+    "-o" : {"minargs": 2, "handler": None},
+    "--ip":{"minargs": 2, "handler": set_ip},
 }
 
 
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    print(args, len(args))
-
-    if len(args) == 0:
-        print("Missing command. Valid: %s" % ", ".join(COMMANDS.keys()))
-        sys.exit(-1)
-
-    cmd = args[0].lower()
-    args = args[1:]
-
-    if len(args) < COMMANDS[cmd]["minargs"]:
-        print("Missing arguments. Usage: %s" % cmd)
-        sys.exit(-1)
-    
-    try:
-        print(COMMANDS[cmd]["handler"](*args))
-    except TimeoutError:
-        print("Timeout error")
+    main()

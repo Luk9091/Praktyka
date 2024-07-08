@@ -3,6 +3,6 @@ def FIFO(args: list):
     return True
 
 
-PARAM = {
+PARAMS = {
     "--FIFO": {"value": False, "handler": FIFO},
 }

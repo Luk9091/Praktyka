@@ -16,8 +16,8 @@ class ADDRESS:
         return (self.IP, self.port)
 
 class IPBus:
-    # address = ADDRESS("localhost", 50001)
-    address = ADDRESS("172.20.75.175", 50001)
+    address = ADDRESS("localhost", 50001)
+    # address = ADDRESS("172.20.75.175", 50001)
     nextPackeID: int
     status = StatusPacket()
 
@@ -32,40 +32,27 @@ class IPBus:
     def __writing(self, toSend) -> bool:
         if not isinstance(toSend, bytearray): toSend = bytearray(toSend)
         n: int = self.socket.sendto(toSend, self.address())
-        # try:
-        #     n: int = self.socket.sendto(toSend, self.address())
-        # except socket.timeout:
-        #     print(f"Timeout error")
-        #     return False
         if (n == -1):
-            print(f"Socket write error")
+            # print(f"Socket write error")
             return False
         if (n != len(toSend)):
-            print(f"Sending packed failed")
+            # print(f"Sending packed failed")
             return False
         return True
 
     def __reading(self) -> tuple[bool, bytearray]:
         data: bytes = self.socket.recvfrom(maxWordsPerPacket)
-        # try:
-        #     data: bytes = self.socket.recvfrom(maxWordsPerPacket)
-        # except socket.timeout:
-        #     print(f"Timeout error")
-        #     return False, None
-
         readAddress = ADDRESS(data[1][0], data[1][1])
         data = data[0]
         
         if len(data) == 0:
-            print(f"Empty data")
+            # print(f"Empty data")
             return False, None
         return True, data
 
     def statusRequest(self) -> int:
         statusPacket = StatusPacket()
         packetHeader = PacketHeader(PacketType["status"])
-        # toSend = packetHeader.toBytesArray("little")
-        # toSend = [*toSend, *statusPacket.toBytesArray()]
         toSend = statusPacket.toBytesArray()
         if not self.__writing(bytearray(toSend)):
             return -1
@@ -117,7 +104,7 @@ class IPBus:
         
         return header.infoCode, readWords
 
-    def write(self, startRegisterAddress: int, data: list[int], FIFO: bool):
+    def write(self, startRegisterAddress: int, data: list[int], FIFO: bool) -> int:
         '''
             Write to register:
                 !!! Max write size: 255 words
@@ -149,7 +136,10 @@ class IPBus:
         if not status:
             return -1
 
-        header.fromBytesArray(data[0:4])
+# ! Sprawdzić czy na pewno jest to pierwsze cztery bajty
+# !  Czy może drugie?
+        print(data)
+        header.fromBytesArray(data[4:8])
         return header.infoCode
 
 
