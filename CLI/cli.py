@@ -15,13 +15,16 @@ csvFormat = False
 class State(Enum):
     CLI = 1
     READ_FILE = 2
-    EXIT = 3
+    OK_EXIT = 3
+    ERR_EXIT = 4
     ERROR = 100
 
-def _exit(*args: list, ipBus=None) -> None:
-    print()
-    print("Exiting...")
+def OK_exit(*args: list, ipBus=None) -> None:
+    # print()
+    # print("Exiting...")
     exit(0)
+def ERR_exit(*args: list, ipBus=None) -> None:
+    exit(1)
 
 def CSV_format(*args, ipBus=None):
     csvFormat = True
@@ -91,13 +94,14 @@ def Init(args: list) -> State:
                     print(f"Error: {ans}")
             except TimeoutError:
                 print("Timeout error")
+                return State.ERR_EXIT
             finally:
-                return State.EXIT
+                return State.OK_EXIT
 
     return state
 
         
-def CLI():
+def CLI(*args):
     try:
         while True:
             read = input(f"{ipBus.address.IP} << ")
@@ -109,7 +113,7 @@ def CLI():
             else:
                 print(f"Error: {ans}")
     except KeyboardInterrupt:
-        _exit()
+        OK_exit()
         
 
 def write_file():
@@ -121,14 +125,15 @@ def read_file(*args):
 def main():
     args = sys.argv[1:]
     status = Init(args)
-    STATE[status]()
+    STATE[status]["handler"](STATE[status]["args"])
 
 
 STATE = {
-    State.ERROR     : {"handler": _exit,        "args": []},
-    State.CLI       : {"handler": CLI,          "args": []},
-    State.READ_FILE : {"handler": read_file,    "args": []},
-    State.EXIT      : {"handler": _exit,        "args": []},
+    State.ERROR     : {"handler": ERR_exit,     "args": None},
+    State.CLI       : {"handler": CLI,          "args": None},
+    State.READ_FILE : {"handler": read_file,    "args": None},
+    State.OK_EXIT   : {"handler": OK_exit,      "args": None},
+    State.ERR_EXIT  : {"handler": ERR_exit,     "args": None},
 }
 
 
@@ -140,7 +145,7 @@ COMMANDS = {
     "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [mask] [value]"},
     "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RMWsum [address | name] [value]"},
     "help"   : {"minargs": 0, "handler": help,          "usage": "help ([command])"},
-    "exit"   : {"minargs": 0, "handler": _exit,         "usage": "Just exit"},
+    "exit"   : {"minargs": 0, "handler": OK_exit,         "usage": "Just exit"},
 }
 
 PARAMS = {
