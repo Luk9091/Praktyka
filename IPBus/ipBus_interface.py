@@ -16,8 +16,8 @@ class ADDRESS:
         return (self.IP, self.port)
 
 class IPBus:
-    # address = ADDRESS("localhost", 50001)
-    address = ADDRESS("172.20.75.175", 50001)
+    address = ADDRESS("localhost", 50001)
+    # address = ADDRESS("172.20.75.175", 50001)
     nextPackeID: int
     status = StatusPacket()
 
