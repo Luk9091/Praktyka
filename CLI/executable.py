@@ -3,21 +3,23 @@ import read as read_handler
 import write as write_handler
 from error_codes import Error
 
-def set_ip(*args, ipBus: IPBus.IPBus):
+def set_ip(args: list, ipBus: IPBus.IPBus):
     if (args is None) or (len(args) == 0):
         return Error.OK, "Current IP: %s:%d" % (ipBus.address.IP, ipBus.address.port)
         
-    ipBus.address.IP = args[0]
+    # ipBus.address.IP = args[0]
+    ipBus.address.IP = args.pop(args.index("--ip") + 1)
+    args.remove("--ip")
 
-    if len(args) > 1:
-        try:
-            ipBus.address.port = int(args[1])
-        except ValueError:
-            return Error.INVALID_COMMAND, "Port must be an integer."
+    # if len(args) > 1:
+    #     try:
+    #         ipBus.address.port = int(args[1])
+    #     except ValueError:
+    #         return Error.INVALID_COMMAND, "Port must be an integer."
 
     return Error.OK, "IP address set to %s:%d" % (ipBus.address.IP, ipBus.address.port)
 
-def read_status(*args, ipBus: IPBus.IPBus):
+def read_status(args: list, ipBus: IPBus.IPBus):
     ipBus.statusRequest()
     try:
         status = ipBus.statusResponse()
@@ -40,9 +42,9 @@ def readToString(startAddress: int, data: list[int], FIFO: bool) -> str:
         for i in range(len(data)):
             string += " 0x%08X" % data[i]
 
-    return string
+    return string.rstrip("\n")
 
-def read(*args, ipBus: IPBus.IPBus):
+def read(args: list, ipBus: IPBus.IPBus):
     args = list(args)
     for key in read_handler.PARAMS.keys():
         if key in args:
@@ -64,7 +66,7 @@ def read(*args, ipBus: IPBus.IPBus):
     return Error.OK, readToString(args[0], data, read_handler.PARAMS["--FIFO"]["value"])
 
 
-def write(*args, ipBus: IPBus.IPBus):
+def write(args: list, ipBus: IPBus.IPBus):
     args = list(args)
 
     for key in read_handler.PARAMS.keys():
@@ -84,7 +86,7 @@ def write(*args, ipBus: IPBus.IPBus):
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
 
 
-def RMWbits(*args, ipBus: IPBus.IPBus):
+def RMWbits(args: list, ipBus: IPBus.IPBus):
     args = list(args)
 
     for i in range(len(args)):
