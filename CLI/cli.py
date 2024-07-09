@@ -19,17 +19,17 @@ class State(Enum):
     ERR_EXIT = 4
     ERROR = 100
 
-def OK_exit(*args: list, ipBus=None) -> None:
+def OK_exit(args: list, ipBus=None) -> None:
     # print()
     # print("Exiting...")
     exit(0)
-def ERR_exit(*args: list, ipBus=None) -> None:
+def ERR_exit(args: list, ipBus=None) -> None:
     exit(1)
 
-def CSV_format(*args, ipBus=None):
+def CSV_format(args: list, ipBus=None):
     csvFormat = True
 
-def help(*args, ipBus = None):
+def help(args, ipBus = None):
     if len(args) == 0:
         return Error.OK, "Available commands: %s" % ", ".join(COMMANDS.keys())
 
@@ -40,12 +40,12 @@ def help(*args, ipBus = None):
         status, ans = Error.INVALID_COMMAND, "Command not found"
     return status, ans
 
-def param_help(*args, ipBus = None):
+def param_help(args, ipBus = None):
     print("Available parameters: %s" % ", ".join(PARAMS.keys()))
     for key in PARAMS.keys():
         print(f"\t{key}: {PARAMS[key]['usage']}")
 
-def execute_command(*args) -> tuple[Error, str]:
+def execute_command(args: list) -> tuple[Error, str]:
     args = list(args)
     if len(args) == 0:
         ans = "Missing command. \nValid: %s" % ", ".join(COMMANDS.keys())
@@ -67,7 +67,7 @@ def execute_command(*args) -> tuple[Error, str]:
         return status, ans
     
     try:
-        error, ans = COMMANDS[cmd]["handler"](*args, ipBus=ipBus)
+        error, ans = COMMANDS[cmd]["handler"](args, ipBus=ipBus)
     except ValueError:
         return Error.INVALID_COMMAND, "Invalid arguments"
 
@@ -78,8 +78,7 @@ def Init(args: list) -> State:
 
     for cmd in args:
         if cmd in PARAMS.keys():
-            args.remove(cmd)
-            PARAMS[cmd]["handler"](*args, ipBus=ipBus)
+            PARAMS[cmd]["handler"](args, ipBus=ipBus)
             if PARAMS[cmd]["nextState"].value > state.value:
                 state = PARAMS[cmd]["nextState"]
             continue
@@ -87,7 +86,7 @@ def Init(args: list) -> State:
     for cmd in args:
         if cmd in COMMANDS.keys():
             try:
-                status, ans = execute_command(*args)
+                status, ans = execute_command(args)
                 if status == Error.OK:
                     print(ans)
                 else:
@@ -104,7 +103,7 @@ def Init(args: list) -> State:
     return state
 
         
-def CLI(*args):
+def CLI(args: list):
     try:
         while True:
             read = input(f"{ipBus.address.IP} << ")
@@ -122,11 +121,10 @@ def CLI(*args):
 def write_file():
     pass
 
-def read_file(*args):
+def read_file(args: list):
     pass
 
-def main():
-    args = sys.argv[1:]
+def main(args: list):
     status = Init(args)
     STATE[status]["handler"](STATE[status]["args"])
 
@@ -148,7 +146,7 @@ COMMANDS = {
     "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [mask] [value]"},
     "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RMWsum [address | name] [value]"},
     "help"   : {"minargs": 0, "handler": help,          "usage": "help ([command])"},
-    "exit"   : {"minargs": 0, "handler": OK_exit,         "usage": "Just exit"},
+    "exit"   : {"minargs": 0, "handler": OK_exit,       "usage": "Just exit"},
 }
 
 PARAMS = {
@@ -162,4 +160,5 @@ PARAMS = {
 
 
 if __name__ == "__main__":
-    main()
+    args = sys.argv[1:]
+    main(args)
