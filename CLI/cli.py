@@ -109,7 +109,7 @@ def CLI(args: list):
             read = input(f"{ipBus.address.IP} << ")
             read = read.split(" ")
             
-            status, ans = execute_command(*read)
+            status, ans = execute_command(read)
             if status == Error.OK:
                 print(ans)
             else:
