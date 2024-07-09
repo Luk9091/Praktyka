@@ -96,7 +96,10 @@ def Init(args: list) -> State:
                 print("Timeout error")
                 return State.ERR_EXIT
             finally:
-                return State.OK_EXIT
+                if status == Error.OK:
+                    return State.OK_EXIT
+                else:
+                    return State.ERR_EXIT
 
     return state
 
