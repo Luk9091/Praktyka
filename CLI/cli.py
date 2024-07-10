@@ -19,11 +19,9 @@ class State(Enum):
     ERR_EXIT = 4
     ERROR = 100
 
-def OK_exit(args: list, ipBus=None) -> None:
-    # print()
-    # print("Exiting...")
+def OK_exit(args: list = None, ipBus=None) -> None:
     exit(0)
-def ERR_exit(args: list, ipBus=None) -> None:
+def ERR_exit(args: list = None, ipBus=None) -> None:
     exit(1)
 
 def CSV_format(args: list, ipBus=None):
@@ -104,19 +102,19 @@ def Init(args: list) -> State:
 
         
 def CLI(args: list):
-    try:
-        while True:
+    while True:
+        try:
             read = input(f"{ipBus.address.IP} << ")
-            read = read.split(" ")
-            
-            status, ans = execute_command(read)
-            if status == Error.OK:
-                print(ans)
-            else:
-                print(f"Error: {ans}")
-    except KeyboardInterrupt:
-        OK_exit()
-        
+        except KeyboardInterrupt:
+            OK_exit()
+
+        read = read.split(" ")
+        status, ans = execute_command(read)
+        if status == Error.OK:
+            print(ans)
+        else:
+            print(f"Error: {ans}")
+    
 
 def write_file():
     pass
@@ -141,7 +139,7 @@ STATE = {
 COMMANDS = {
     "ip"     : {"minargs": 0, "handler": set_ip,        "usage": "ip [ip] ([port])"},
     "status" : {"minargs": 0, "handler": read_status,   "usage": "status ([--timeout] [value])"},
-    "read"   : {"minargs": 1, "handler": read,          "usage": "read [address | name] ([-n] [value]) ([--FIFO])"},
+    "read"   : {"minargs": 1, "handler": read,          "usage": "read [address | name] ([-n] [value]) ([--FIFO]) ([-s])"},
     "write"  : {"minargs": 2, "handler": write,         "usage": "write [address | name] [value] ([values]...) ([--FIFO])"},
     "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [mask] [value]"},
     "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RMWsum [address | name] [value]"},

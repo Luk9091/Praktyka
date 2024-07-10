@@ -11,3 +11,4 @@ class Error(Enum):
     TRANSACTION = -5
     READ = -6
     WRITE = -7
+    READ_ONLY = -8
