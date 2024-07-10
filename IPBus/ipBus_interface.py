@@ -17,7 +17,6 @@ class ADDRESS:
 
 class IPBus:
     address = ADDRESS("localhost", 50001)
-    # address = ADDRESS("172.20.75.175", 50001)
     nextPackeID: int
     status = StatusPacket()
 
@@ -32,21 +31,16 @@ class IPBus:
     def __writing(self, toSend) -> bool:
         if not isinstance(toSend, bytearray): toSend = bytearray(toSend)
         n: int = self.socket.sendto(toSend, self.address())
-        if (n == -1):
-            # print(f"Socket write error")
-            return False
-        if (n != len(toSend)):
-            # print(f"Sending packed failed")
+        if (n == -1) or (n != len(toSend)):
             return False
         return True
 
     def __reading(self) -> tuple[bool, bytearray]:
         data: bytes = self.socket.recvfrom(maxWordsPerPacket)
-        readAddress = ADDRESS(data[1][0], data[1][1])
+        # readAddress = ADDRESS(data[1][0], data[1][1])
         data = data[0]
         
         if len(data) == 0:
-            # print(f"Empty data")
             return False, None
         return True, data
 
@@ -66,7 +60,7 @@ class IPBus:
         self.status.fromBytesArray(data)
         return self.status.packetHeader.packetType
 
-    def read(self, startRegisterAddress: int, nWords: int, FIFO: bool) -> tuple[int, list[int]]:
+    def read(self, startRegisterAddress: int, nWords: int, FIFO: bool, signed: bool = False) -> tuple[int, list[int]]:
         '''
             Read from register:
                 !!! Max read size: 255 words
@@ -100,11 +94,11 @@ class IPBus:
 
         readWords = []
         for i in range(8, len(data), 4):
-            readWords.append(int.from_bytes(data[i:i+4], "little"))
+            readWords.append(int.from_bytes(data[i:i+4], "little", signed=signed))
         
         return header.infoCode, readWords
 
-    def write(self, startRegisterAddress: int, data: list[int], FIFO: bool) -> int:
+    def write(self, startRegisterAddress: int, data: list[int], FIFO: bool, signed: bool = False) -> int:
         '''
             Write to register:
                 !!! Max write size: 255 words
@@ -127,7 +121,9 @@ class IPBus:
         toSend = [*toSend, *startRegisterAddress.to_bytes(4, "little")]
 
         for word in data:
-            toSend = [*toSend, *word.to_bytes(4, "little")]
+            if (word < 0): signed = True
+            else: signed = False
+            toSend = [*toSend, *word.to_bytes(4, "little", signed=signed)]
 
         if not self.__writing(toSend):
             return -1
@@ -158,14 +154,17 @@ class IPBus:
         
         return int.from_bytes(data[8:12], "little")
 
-    def readModifyWriteSum(self, registerAddress: int, addend: int) -> int:
+    def readModifyWriteSum(self, registerAddress: int, addend: int, signed_read: bool = False) -> int:
+        signed_add = False
+        if addend < 0:
+            signed_add = True
+
         header = TransactionHeader(TransactionType["RMWsum"], 1, id=0)
         packetHeader = PacketHeader(PacketType["control"])
         toSend = packetHeader.toBytesArray("little")
         toSend = [*toSend, *header.toBytesArray()]
-        # toSend = header.toBytesArray()
         toSend = [*toSend, *registerAddress.to_bytes(4, "little")]
-        toSend = [*toSend, *addend.to_bytes(4, "little")]
+        toSend = [*toSend, *addend.to_bytes(4, "little", signed=signed_add)]
 
         if not self.__writing(toSend):
             return -1
@@ -174,19 +173,19 @@ class IPBus:
         if not status:
             return -1
 
-        return int.from_bytes(data[8:12], "little")
+        return int.from_bytes(data[8:12], "little", signed=signed_read)
 
 
 
 
 if __name__ == '__main__':
     from colorama import init as colorama_init
-    from colorama import Fore, Style
+    from colorama import Fore, Style, Back
     import sys
     
 
     colorama_init(autoreset=True)
-    print(f"{Fore.GREEN}IPBus interface unit test:")
+    print(f"{Fore.RED}{Back.GREEN}IPBus interface unit test:")
     ipBus = IPBus()
 
     print()

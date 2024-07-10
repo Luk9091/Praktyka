@@ -1,11 +1,82 @@
-TCM_REGISTERS = {
-    "DELAY_A"       : {"address": 0x0000, "range": {"min": -1024, "max": 1024}, "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}},
-    "DELAY_C"       : {"address": 0x0001, "range": {"min": -1024, "max": 1024}, "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}},
-    "LASER_DELAY"   : {"address": 0x0002, "range": {"min": -1024, "max": 1024}, "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}},
-    "ATTENUATOR"    : {"address": 0x0003, "range": {"min": 0,   "max": 12_000}, "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}}, #! No nie wiem czy to jest dobre zakres przekracza 13 bitów kalibracji
-    "ATTEN_VALUE"   : {"address": 0x0003, "range": {"min": 0,   "max": 12_000}, "readonly": False, "bits_pos": {"LSB": 0, "LEN": 13}},
-    "ATTEN_BUSY"    : {"address": 0x0003, "range": {"min": 0,   "max": 1},      "readonly": True , "bits_pos": {"LSB": 14,"LEN": 1}},
-    "ATTEN_ERROR"   : {"address": 0x0003, "range": {"min": 0,   "max": 1},      "readonly": True , "bits_pos": {"LSB": 15,"LEN": 1}},
-    "SWITCHES"      : {"address": 0x0004, "range": {"min": 0,   "max": 0b1111}, "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}},
-    "TEMPERATURE"   : {}
+CHANNELS = {
+    "CH01" : {"address": 0,  "range": None, "additionalValue": None},
+    "CH02" : {"address": 1,  "range": None, "additionalValue": None},
+    "CH03" : {"address": 2,  "range": None, "additionalValue": None},
+    "CH04" : {"address": 3,  "range": None, "additionalValue": None},
+    "CH05" : {"address": 4,  "range": None, "additionalValue": None},
+    "CH06" : {"address": 5,  "range": None, "additionalValue": None},
+    "CH07" : {"address": 6,  "range": None, "additionalValue": None},
+    "CH08" : {"address": 7,  "range": None, "additionalValue": None},
+    "CH09" : {"address": 8,  "range": None, "additionalValue": None},
+    "CH10" : {"address": 9,  "range": None, "additionalValue": None},
+    "CH11" : {"address": 10, "range": None, "additionalValue": None},
+    "CH12" : {"address": 11, "range": None, "additionalValue": None},
 }
+
+PM_REGISTERS = {
+    "OR_GATE"           : {"address": 0x0000, "range": {"min": 0,     "max": 0x1FF},         "readonly": False, "bits_pos": {"LSB": 0, "LEN": 9}, "additionalValue": None},
+    # ""
+
+}
+
+
+TCM_REGISTERS = {
+    "DELAY_A"           : {"address": 0x0000, "range": {"min": -1024, "max": 1024},          "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "DELAY_C"           : {"address": 0x0001, "range": {"min": -1024, "max": 1024},          "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "LASER_DELAY"       : {"address": 0x0002, "range": {"min": -1024, "max": 1024},          "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "ATTENUATOR"        : {"address": 0x0003, "range": {"min": 0,     "max": 12_000},        "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None}, #! No nie wiem czy to jest dobre zakres przekracza 13 bitów kalibracji
+    "ATTEN_VALUE"       : {"address": 0x0003, "range": {"min": 0,     "max": 12_000},        "readonly": False, "bits_pos": {"LSB": 0, "LEN": 13}, "additionalValue": None},
+    "ATTEN_BUSY"        : {"address": 0x0003, "range": {"min": 0,     "max": 1},             "readonly": True , "bits_pos": {"LSB": 14,"LEN": 1} , "additionalValue": None},
+    "ATTEN_ERROR"       : {"address": 0x0003, "range": {"min": 0,     "max": 1},             "readonly": True , "bits_pos": {"LSB": 15,"LEN": 1} , "additionalValue": None},
+    "SWITCHES"          : {"address": 0x0004, "range": {"min": 0,     "max": 0b1111},        "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "TEMPERATURE"       : {"address": 0x0005, "range": {"min": 100,   "max": 700},           "readonly": True , "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "BOARD_ID"          : {"address": 0x0007, "range": {"min": 0,     "max": 0xFFFF},        "readonly": True , "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "BOARD_TYPE"        : {"address": 0x0007, "range": {"min": 0,     "max": 3},             "readonly": True , "bits_pos": {"LSB": 0, "LEN": 2} , "additionalValue": None},
+    "SERIAL_NUM"        : {"address": 0x0007, "range": {"min": 0,     "max": 0xFF},          "readonly": True , "bits_pos": {"LSB": 8, "LEN": 8} , "additionalValue": None},
+    "VTIME_LOW"         : {"address": 0x0008, "range": {"min": -512,  "max": 511},           "readonly": False, "bits_pos": {"LSB": 0, "LEN": 10}, "additionalValue": None},
+    "VTIME_HIGH"        : {"address": 0x0009, "range": {"min": -512,  "max": 511},           "readonly": False, "bits_pos": {"LSB": 0, "LEN": 10}, "additionalValue": None},
+    "SC_LEVEL_A"        : {"address": 0x000A, "range": {"min": 0,     "max": 0xFFFF},        "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "SC_LEVEL_C"        : {"address": 0x000B, "range": {"min": 0,     "max": 0xFFFF},        "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "C_LEVEL_A"         : {"address": 0x000C, "range": {"min": 0,     "max": 0xFFFF},        "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "C_LEVEL_C"         : {"address": 0x000D, "range": {"min": 0,     "max": 0xFFFF},        "readonly": False, "bits_pos": {"LSB": 0, "LEN": 16}, "additionalValue": None},
+    "MODE"              : {"address": 0x000E, "range": {"min": 0,     "max": 0x03FF},        "readonly": False, "bits_pos": {"LSB": 0, "LEN": 10}, "additionalValue": None},
+    "ADD_C_DELAY"       : {"address": 0x000E, "range": {"min": 0,     "max": 1},             "readonly": False, "bits_pos": {"LSB": 0, "LEN": 1} , "additionalValue": None},
+    "C_SC_TRG_MODE"     : {"address": 0x000E, "range": {"min": 0,     "max": 3},             "readonly": False, "bits_pos": {"LSB": 1, "LEN": 2} , "additionalValue": None},
+    "BOARD_STATUS"      : {"address": 0x000F, "range": {"min": 0,     "max": 0xFFFF},        "readonly": False, "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "RESET_COUNTER"     : {"address": 0x000F, "range": {"min": 0,     "max": 1},             "readonly": False, "bits_pos": {"LSB": 9, "LEN": 1} , "additionalValue": None},
+    "FORCE_LOCAL_CLOCK" : {"address": 0x000F, "range": {"min": 0,     "max": 1},             "readonly": False, "bits_pos": {"LSB": 10, "LEN": 1} ,"additionalValue": None},
+    "RESET_SYSTEM"      : {"address": 0x000F, "range": {"min": 0,     "max": 1},             "readonly": False, "bits_pos": {"LSB": 11, "LEN": 1} ,"additionalValue": None},
+    "PM_LINK_A0"        : {"address": 0x0010, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_A1"        : {"address": 0x0011, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_A2"        : {"address": 0x0012, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_A3"        : {"address": 0x0013, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_A4"        : {"address": 0x0014, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_A5"        : {"address": 0x0015, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_A6"        : {"address": 0x0016, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_A7"        : {"address": 0x0017, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_A8"        : {"address": 0x0018, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_A9"        : {"address": 0x0019, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "SIDE_A_STATUS"     : {"address": 0x001A, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "CH_MASK_A"         : {"address": 0x001A, "range": {"min": 0,     "max": 511},           "readonly": False, "bits_pos": {"LSB": 0, "LEN": 9} , "additionalValue": None},
+    "LASER_CONTROL"     : {"address": 0x001B, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": False, "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "LASER_DIVIDER"     : {"address": 0x001B, "range": {"min": 0,     "max": 0xFF_FFFF},     "readonly": False, "bits_pos": {"LSB": 0, "LEN": 23}, "additionalValue": None},
+    "LASER_SOURCE"      : {"address": 0x001B, "range": {"min": 0,     "max": 1},             "readonly": False, "bits_pos": {"LSB": 31, "LEN": 1}, "additionalValue": None},
+    "LASER_PATTERN_1"   : {"address": 0x001C, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": False, "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "LASER_PATTERN_0"   : {"address": 0x001D, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": False, "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "SPI_MASK"          : {"address": 0x001E, "range": {"min": 0,     "max": 0xF_FFFF},      "readonly": False, "bits_pos": {"LSB": 0, "LEN": 20}, "additionalValue": None},
+    "PM_LINK_C0"        : {"address": 0x0030, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_C1"        : {"address": 0x0031, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_C2"        : {"address": 0x0032, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_C3"        : {"address": 0x0033, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_C4"        : {"address": 0x0034, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_C5"        : {"address": 0x0035, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_C6"        : {"address": 0x0036, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_C7"        : {"address": 0x0037, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_C8"        : {"address": 0x0038, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "PM_LINK_C9"        : {"address": 0x0039, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": None},
+    "CH_MASK_C"         : {"address": 0x003A, "range": {"min": 0,     "max": 511},           "readonly": False, "bits_pos": {"LSB": 0, "LEN": 9} , "additionalValue": None},
+    "COUNTER_UDP_RATE"  : {"address": 0x0050, "range": {"min": 0,     "max": 7},             "readonly": False, "bits_pos": {"LSB": 0, "LEN": 3},  "additionalValue": None},
+
+
+    "PM0"               : {"address": 0x0200, "range": {"min": 0,     "max": 0xFFFF_FFFF},   "readonly": True,  "bits_pos": {"LSB": 0, "LEN": 32}, "additionalValue": PM_REGISTERS},
+}   
