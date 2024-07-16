@@ -59,7 +59,7 @@ def args_to_int(args: list, readWrite: str) -> tuple[Error, list[int]]:
             args[i] = int(args[i][2:], 2)
         else:
             args[i] = int(args[i])
-    return Error.OK, args
+    return Error.OK, args, None
 
 
 def set_ip(args: list, ipBus: IPBus.IPBus):
@@ -83,12 +83,17 @@ def read_status(args: list, ipBus: IPBus.IPBus):
     
     return Error.STATUS_REQUEST, "IPBus status request failed"
 
-def readToString(startAddress: int, data: list[int], FIFO: bool) -> str:
+def readToString(startAddress: int, data: list[int], FIFO: bool, base: int) -> str:
     string = ""
 
     if not FIFO:
         for i in range(len(data)):
-            string += f"{data[i]}\n"
+            if (base == 16):
+                string += f"0x{data[i]:08X}\n"
+            elif (base == 2):
+                string += f"0b{data[i]:032b}\n"
+            else:
+                string += f"{data[i]}\n"
     else:
         string =  "0x%08X:" % startAddress
         for i in range(len(data)):
@@ -106,11 +111,6 @@ def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     error, args, reg = args_to_int(args, "read")
     if error != Error.OK:
         return error, "Invalid arguments"
-    # for i, value in enumerate(args):
-    #     # try:
-    #     args[i] = int(args[i])
-    #     # except ValueError:
-    #     #     args[i] = interpretive_register(args, i)
 
 
     try: 
@@ -122,9 +122,12 @@ def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
     
     ans = data[0]
-    ans = (ans & ((2**reg["bits_pos"]["LEN"]-1) << reg["bits_pos"]["LSB"])) >> reg["bits_pos"]["LSB"]
+    if not reg is None:
+        ans = (ans & ((2**reg["bits_pos"]["LEN"]-1) << reg["bits_pos"]["LSB"])) >> reg["bits_pos"]["LSB"]
+        if reg["range"]["min"] < 0:
+            read_handler.PARAMS["-s"]["value"] = True
 
-    return Error.OK, readToString(args[0], data, read_handler.PARAMS["--FIFO"]["value"])
+    return Error.OK, readToString(args[0], data, read_handler.PARAMS["--FIFO"]["value"], read_handler.base)
 
 
 def write(args: list, ipBus: IPBus.IPBus):
