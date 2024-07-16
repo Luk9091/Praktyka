@@ -3,3 +3,14 @@ __pycache__
 FTM control software
 ControlServer-master
 virtual
+*.xlsx
+
+# LaTeX
+*.aux
+*.log
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
