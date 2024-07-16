@@ -20,7 +20,11 @@ class IPBus:
     nextPackeID: int
     status = StatusPacket()
 
-    def __init__(self):
+    def __init__(self, IP_address: str | None = "localhost", IP_port: str | None = 50001):
+        if not IP_address is None:
+            self.address.IP = IP_address
+        if not IP_port is None:
+            self.address.port = IP_port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.settimeout(1)
 
@@ -62,8 +66,8 @@ class IPBus:
 
     def read(self, startRegisterAddress: int, nWords: int, FIFO: bool, signed: bool = False) -> tuple[int, list[int]]:
         '''
+                !!! Max read size: 255 words !!!
             Read from register:
-                !!! Max read size: 255 words
 
             Returns
             -------
@@ -98,10 +102,10 @@ class IPBus:
         
         return header.infoCode, readWords
 
-    def write(self, startRegisterAddress: int, data: list[int], FIFO: bool, signed: bool = False) -> int:
+    def write(self, startRegisterAddress: int, data: list[int] | int, FIFO: bool) -> int:
         '''
+                !!! Max write size: 255 words !!!
             Write to register:
-                !!! Max write size: 255 words
 
             Returns
             -------
@@ -174,6 +178,10 @@ class IPBus:
             return -1
 
         return int.from_bytes(data[8:12], "little", signed=signed_read)
+    
+    # @set
+    # def timeout(self, value:oat | None):
+    #     self.socket.settimeout(value)
 
 
 
