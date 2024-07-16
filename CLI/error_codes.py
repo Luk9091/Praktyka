@@ -12,3 +12,5 @@ class Error(Enum):
     READ = -6
     WRITE = -7
     READ_ONLY = -8
+    INVALID_REGISTER = -9
+    INVALID_VALUE = -10

@@ -3,39 +3,54 @@ import read as read_handler
 import write as write_handler
 from error_codes import Error
 
-def interpretive_register(args: list) -> tuple[Error, list[int]]:
+def interpretive_register(args: list, readWrite: str) -> tuple[Error, list[int]]:
     i = 0
-    try:
-        register = IPBus.registers.TCM_REGISTERS[args[i]]
-    except KeyError:
-        return Error.INVALID_COMMAND, []
+    REG = {"address": 0, "range": None, "readonly": False, "bits_pos": None, "additionalValue": IPBus.registers.TCM_REGISTERS}
 
-    address = register["address"]
-    if register["range"] is not None:
-        Range = register["range"]
-    while register["additionalValue"] is not None:
+    while not REG["additionalValue"] is None:
+        try:
+            register = REG["additionalValue"][args[i].upper()]
+        except KeyError:
+            return Error.INVALID_REGISTER, []
+        
+        REG["address"] += register["address"]
+
+        REG["additionalValue"] = register["additionalValue"]
+        if not register["range"] is None:
+            REG["range"] = register["range"]
+        if not register["readonly"] is None:
+            REG["readonly"] = register["readonly"]
+        if not register["bits_pos"] is None:
+            REG["bits_pos"] = register["bits_pos"]
+
         i += 1
 
+    if readWrite == "read":
+        return Error.OK, [REG["address"]]
+
+
+    if readWrite == "write":
+        if REG["readonly"]:
+            return Error.READ_ONLY, []
+
         try:
-            register = register["additionalValue"][args[i]]
-        except KeyError:
-            return Error.INVALID_COMMAND, []
-
-        if register["range"] is not None:
-            Range = register["range"]
-        address += register["address"]
-
-    try:
-        value = int(args[i+1])
-        if Range["min"] <= value <= Range["max"]:
-            return Error.OK, [address, value]
-    except ValueError:
-        return Error.INVALID_COMMAND, []
+            value = int(args[i+1])
+            if REG["range"]["min"] <= value <= REG["range"]["max"]:
+                return Error.OK, [REG["address"], value]
+            else:
+                return Error.INVALID_VALUE, []
+        except ValueError or IndexError:
+            return Error.INVALID_VALUE, []
 
 
     return Error.INVALID_COMMAND, []
 
-def args_to_int(args: list) -> list[int]:
+def args_to_int(args: list, readWrite: str) -> tuple[Error, list[int]]:
+
+    if args[0].upper() in IPBus.registers.TCM_REGISTERS.keys():
+        return interpretive_register(args, readWrite)
+
+
     for i in range(len(args)):
         if args[i].startswith("0x"):
             args[i] = int(args[i][2:], 16)
@@ -43,22 +58,15 @@ def args_to_int(args: list) -> list[int]:
             args[i] = int(args[i][2:], 2)
         else:
             args[i] = int(args[i])
-    return args
+    return Error.OK, args
 
 
 def set_ip(args: list, ipBus: IPBus.IPBus):
     if (args is None) or (len(args) == 0):
         return Error.OK, "Current IP: %s:%d" % (ipBus.address.IP, ipBus.address.port)
         
-    # ipBus.address.IP = args[0]
     ipBus.address.IP = args.pop(args.index("--ip") + 1)
     args.remove("--ip")
-
-    # if len(args) > 1:
-    #     try:
-    #         ipBus.address.port = int(args[1])
-    #     except ValueError:
-    #         return Error.INVALID_COMMAND, "Port must be an integer."
 
     return Error.OK, "IP address set to %s:%d" % (ipBus.address.IP, ipBus.address.port)
 
@@ -79,8 +87,6 @@ def readToString(startAddress: int, data: list[int], FIFO: bool) -> str:
 
     if not FIFO:
         for i in range(len(data)):
-            # string += "0x%08X: " % (startAddress + i)
-            # string += "0x%08X\n" % (data[i])
             string += f"{data[i]}\n"
     else:
         string =  "0x%08X:" % startAddress
@@ -89,14 +95,16 @@ def readToString(startAddress: int, data: list[int], FIFO: bool) -> str:
 
     return string.rstrip("\n")
 
-def read(args: list, ipBus: IPBus.IPBus):
+def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
     for key in read_handler.PARAMS.keys():
         if key in args:
             read_handler.PARAMS[key]["value"] = read_handler.PARAMS[key]["handler"](args)
             # args.remove(key)
 
-    args = args_to_int(args)
+    error, args = args_to_int(args, "read")
+    if error != Error.OK:
+        return error, "Invalid arguments"
     # for i, value in enumerate(args):
     #     # try:
     #     args[i] = int(args[i])
@@ -124,7 +132,9 @@ def write(args: list, ipBus: IPBus.IPBus):
 
     # for i in range(len(args)):
     #     args[i] = int(args[i])
-    args = args_to_int(args)
+    error, args = args_to_int(args, "write")
+    if error != Error.OK:
+        return error, "Invalid arguments"
 
     try:
         status = ipBus.write(args[0], args[1:], write_handler.PARAMS["--FIFO"]["value"])
@@ -156,10 +166,12 @@ def RMWsum(args: list, ipBus: IPBus.IPBus):
 
 
 if __name__ == "__main__":
-    data = "PM0 OR_GATE 7"
-    data = data.split(" ")
-    print(interpretive_register(data))
+    # data = "PM0 OR_GATE 7"
+    # data = data.split(" ")
+    # print(interpretive_register(data, "read"))
+    # print(interpretive_register(data, "write"))
 
-    data = "RESET_COUNTER 2"
+    data = "temperature 2"
     data = data.split(" ")
-    print(interpretive_register(data))
+    print(interpretive_register(data, "read"))
+    print(interpretive_register(data, "write"))
