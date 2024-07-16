@@ -1,3 +1,4 @@
+default_base = 10
 base = 10
 
 def FIFO(args: list):

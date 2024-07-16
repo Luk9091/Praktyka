@@ -47,9 +47,11 @@ def interpretive_register(args: list, readWrite: str) -> tuple[Error, list[int],
     return Error.INVALID_COMMAND, [], None
 
 def args_to_int(args: list, readWrite: str) -> tuple[Error, list[int]]:
-
-    if args[0].upper() in IPBus.registers.TCM_REGISTERS.keys():
-        return interpretive_register(args, readWrite)
+    try: 
+        if args[0].upper() in IPBus.registers.TCM_REGISTERS.keys():
+            return interpretive_register(args, readWrite)
+    except IndexError:
+        return Error.INVALID_VALUE, [], None
 
 
     for i in range(len(args)):
@@ -62,13 +64,34 @@ def args_to_int(args: list, readWrite: str) -> tuple[Error, list[int]]:
     return Error.OK, args, None
 
 
-def set_ip(args: list, ipBus: IPBus.IPBus):
+def set_ip_as_param(args: list, ipBus: IPBus.IPBus):
     if (args is None) or (len(args) == 0):
         return Error.OK, "Current IP: %s:%d" % (ipBus.address.IP, ipBus.address.port)
         
-    ipBus.address.IP = args.pop(args.index("--ip") + 1)
+    try:
+        ipBus.address.IP = args.pop(args.index("--ip") + 1)
+    except IndexError:
+        return Error.INVALID_VALUE, "Cannot set new ip address"
+        
+    try:
+        if args[args.index("--ip") + 1].isdigit():
+            ipBus.address.port = int(args.pop(args.index("--ip") + 1))
+    except IndexError:
+        pass
+        
+
     args.remove("--ip")
 
+    return Error.OK, "IP address set to %s:%d" % (ipBus.address.IP, ipBus.address.port)
+
+def set_ip(args: list, ipBus: IPBus.IPBus):
+    if (args is None) or (len(args) == 0):
+        return Error.OK, "Current IP: %s:%d" % (ipBus.address.IP, ipBus.address.port)
+    
+    ipBus.address.IP = args[0]
+    if len(args) > 1:
+        ipBus.address.port = args[1]
+    
     return Error.OK, "IP address set to %s:%d" % (ipBus.address.IP, ipBus.address.port)
 
 def read_status(args: list, ipBus: IPBus.IPBus):
@@ -83,22 +106,28 @@ def read_status(args: list, ipBus: IPBus.IPBus):
     
     return Error.STATUS_REQUEST, "IPBus status request failed"
 
+
+def convertIntToStr(value, base):
+    if base == 16:
+        return f"0x{value:08X}"
+    elif base == 2:
+        return f"0b{value:032b}"
+    else:
+        return str(value)
+
 def readToString(startAddress: int, data: list[int], FIFO: bool, base: int) -> str:
     string = ""
 
     if not FIFO:
         for i in range(len(data)):
-            if (base == 16):
-                string += f"0x{data[i]:08X}\n"
-            elif (base == 2):
-                string += f"0b{data[i]:032b}\n"
-            else:
-                string += f"{data[i]}\n"
+            string = convertIntToStr(data[i], base)
     else:
-        string =  "0x%08X:" % startAddress
-        for i in range(len(data)):
-            string += " 0x%08X" % data[i]
+        # string =  "0x%08X:" % startAddress
+        string = convertIntToStr(data[0], base)
+        for i in range(1, len(data)):
+            string += ", " + convertIntToStr(data[i], base)
 
+    read_handler.base = read_handler.default_base
     return string.rstrip("\n")
 
 def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
@@ -173,15 +202,16 @@ def RMWsum(args: list, ipBus: IPBus.IPBus):
 
 
 if __name__ == "__main__":
-    # data = "PM0 OR_GATE 7"
-    # data = data.split(" ")
-    # print(interpretive_register(data, "read"))
-    # print(interpretive_register(data, "write"))
+    print("This is not main module -- unit test of execute_command")
+    data = "PM0 OR_GATE 7"
+    data = data.split(" ")
+    print(interpretive_register(data, "read"))
+    print(interpretive_register(data, "write"))
 
-    # data = "temperature 2"
-    # data = data.split(" ")
-    # print(interpretive_register(data, "read"))
-    # print(interpretive_register(data, "write"))
+    data = "temperature 2"
+    data = data.split(" ")
+    print(interpretive_register(data, "read"))
+    print(interpretive_register(data, "write"))
 
     data = "temperature 2"
     data = data.split(" ")

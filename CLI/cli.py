@@ -9,8 +9,8 @@ from executable import *
 ipBus = IPBus.IPBus()
 
 
-outputFile = None
-csvFormat = False
+input_file: Path = None
+output_file: Path = None
 
 class State(Enum):
     CLI = 1
@@ -24,10 +24,19 @@ def OK_exit(args: list = None, ipBus=None) -> None:
 def ERR_exit(args: list = None, ipBus=None) -> None:
     exit(1)
 
-def CSV_format(args: list, ipBus=None):
-    csvFormat = True
+def set_inFile(args: list, ipBus=None):
+    global input_file
+    input_file = Path(args[args.index("-i") + 1])
+    return Error.OK, "Input file set to %s" % input_file
 
-def help(args, ipBus = None):
+def set_outFile(args: list, ipBus=None):
+    global output_file
+    output_file = Path(args[args.index("-o") + 1])
+    return Error.OK, "Output file set to %s" % output_file
+
+def help(args: list, ipBus = None):
+    if not isinstance(args, list):
+        args = [args]
     if len(args) == 0:
         return Error.OK, "Available commands: %s" % ", ".join(COMMANDS.keys())
 
@@ -76,10 +85,15 @@ def Init(args: list) -> State:
 
     for cmd in args:
         if cmd in PARAMS.keys():
-            PARAMS[cmd]["handler"](args, ipBus=ipBus)
+            error, msg = PARAMS[cmd]["handler"](args, ipBus=ipBus)
+            if error != Error.OK:
+                print(f"Error: {msg}")
+                return State.ERR_EXIT
+
             if PARAMS[cmd]["nextState"].value > state.value:
                 state = PARAMS[cmd]["nextState"]
-            continue
+                
+            
 
     for cmd in args:
         if cmd in COMMANDS.keys():
@@ -108,19 +122,36 @@ def CLI(args: list):
         except KeyboardInterrupt:
             OK_exit()
 
-        read = read.split(" ")
-        status, ans = execute_command(read)
+        status, ans = execute_command(read.split(" "))
         if status == Error.OK:
             print(ans)
+            if not output_file is None:
+                write_file(ipBus.address.IP, read, ans)
         else:
             print(f"Error: {ans}")
     
 
-def write_file():
-    pass
+def write_file(dev, command, ans):
+    with open(output_file, "a") as file:
+       file.write(f"{dev}, {command}, {ans}\n")
 
 def read_file(args: list):
-    pass
+    file = open(input_file, "r")
+    for line in file:
+        line = line.strip("\n")
+        line = line.strip("\r")
+        # line = line.split(" ")
+        status, ans = execute_command(line.split(" "))
+
+        if status == Error.OK:
+            print(ans)
+            if not output_file is None:
+                write_file(ipBus.address.IP, line, ans)
+        else:
+            print(f"Error: {ans}")
+            break
+    file.close()
+
 
 def main(args: list):
     status = Init(args)
@@ -139,7 +170,7 @@ STATE = {
 COMMANDS = {
     "ip"     : {"minargs": 0, "handler": set_ip,        "usage": "ip [ip] ([port])"},
     "status" : {"minargs": 0, "handler": read_status,   "usage": "status ([--timeout] [value])"},
-    "read"   : {"minargs": 1, "handler": read,          "usage": "read [address | name] ([-n] [value]) ([--FIFO]) ([-s])"},
+    "read"   : {"minargs": 1, "handler": read,          "usage": "read [address | name] ([-n] [value]) ([--FIFO]) ([-s] [-H/B])"},
     "write"  : {"minargs": 2, "handler": write,         "usage": "write [address | name] [value] ([values]...) ([--FIFO])"},
     "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [mask] [value]"},
     "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RMWsum [address | name] [value]"},
@@ -148,10 +179,10 @@ COMMANDS = {
 }
 
 PARAMS = {
-    "-i"    : {"minargs": 2, "handler": None,       "nextState": State.READ_FILE,   "usage": "[file] -- read from file | default: stdin"},
-    "-o"    : {"minargs": 2, "handler": None,       "nextState": State.CLI,         "usage": "[file] -- store output to file | default: only display on stdout"},
-    "--ip"  : {"minargs": 2, "handler": set_ip,     "nextState": State.CLI,         "usage": "[ip] ([port])"},
-    "--csv" : {"minargs": 0, "handler": CSV_format, "nextState": State.CLI,         "usage": "output in csv format"},
+    "-i"    : {"minargs": 2, "handler": set_inFile, "nextState": State.READ_FILE,   "usage": "[file] -- read from file | default: stdin"},
+    "-o"    : {"minargs": 2, "handler": set_outFile,"nextState": State.CLI,         "usage": "[file] -- store output to file | default: only display on stdout"},
+    "--ip"  : {"minargs": 2, "handler": set_ip_as_param, "nextState": State.CLI,    "usage": "[ip] ([port])"},
+    # "--csv" : {"minargs": 0, "handler": CSV_format, "nextState": State.CLI,         "usage": "output in csv format"},
     "--help": {"minargs": 0, "handler": param_help, "nextState": State.OK_EXIT,     "usage": "display help"},
 }
 
