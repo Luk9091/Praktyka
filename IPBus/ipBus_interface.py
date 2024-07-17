@@ -141,6 +141,13 @@ class IPBus:
 
 
     def readModifyWriteBits(self, registerAddress: int, ANDmask: int, ORmask: int) -> int:
+        '''
+            Read-Modify-Write bits in register:
+            Y <= (X & ANDmask) | ORmask
+
+            X - value stored in register
+            Y - new value stored in register
+        '''
         header = TransactionHeader(TransactionType["RMWbits"], 1, id=0)
         packetHeader = PacketHeader(PacketType["control"])
         toSend = packetHeader.toBytesArray("little")
@@ -159,6 +166,13 @@ class IPBus:
         return int.from_bytes(data[8:12], "little")
 
     def readModifyWriteSum(self, registerAddress: int, addend: int, signed_read: bool = False) -> int:
+        '''
+            Read-Modify-Write sum in register:
+            Y <= X + addend
+
+            X - value stored in register
+            Y - new value stored in register
+        '''
         signed_add = False
         if addend < 0:
             signed_add = True
