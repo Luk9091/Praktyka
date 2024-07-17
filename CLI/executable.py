@@ -4,14 +4,14 @@ import write as write_handler
 from error_codes import Error
 
 def interpretive_register(args: list, readWrite: str) -> tuple[Error, list[int], dict]:
-    i = 0
     REG = {"address": 0, "range": None, "readonly": False, "bits_pos": None, "additionalValue": IPBus.registers.TCM_REGISTERS}
 
     while not REG["additionalValue"] is None:
         try:
-            register = REG["additionalValue"][args[i].upper()]
+            register = REG["additionalValue"][args[0].upper()]
         except KeyError:
             return Error.INVALID_REGISTER, [], None
+        args.pop(0)
         
         REG["address"] += register["address"]
 
@@ -23,10 +23,11 @@ def interpretive_register(args: list, readWrite: str) -> tuple[Error, list[int],
         if not register["bits_pos"] is None:
             REG["bits_pos"] = register["bits_pos"]
 
-        i += 1
+    for i in range(len(args)):
+        args[i] = convertStrToInt(args[i])
 
     if readWrite == "read":
-        return Error.OK, [REG["address"]], REG
+        return Error.OK, [REG["address"], *args], REG
 
 
     if readWrite == "write":
@@ -34,7 +35,7 @@ def interpretive_register(args: list, readWrite: str) -> tuple[Error, list[int],
             return Error.READ_ONLY, [], None
 
         try:
-            value = int(args[i+1])
+            value = int(args[0])
             if REG["range"]["min"] <= value <= REG["range"]["max"]:
                 value = value << REG["bits_pos"]["LSB"]
                 return Error.OK, [REG["address"], value], REG
@@ -46,6 +47,15 @@ def interpretive_register(args: list, readWrite: str) -> tuple[Error, list[int],
 
     return Error.INVALID_COMMAND, [], None
 
+
+def convertStrToInt(value: str) -> int:
+    if value.startswith("0x"):
+        return int(value, 16)
+    elif value.startswith("0b"):
+        return int(value, 2)
+    else:
+        return int(value)
+
 def args_to_int(args: list, readWrite: str) -> tuple[Error, list[int]]:
     try: 
         if args[0].upper() in IPBus.registers.TCM_REGISTERS.keys():
@@ -55,12 +65,7 @@ def args_to_int(args: list, readWrite: str) -> tuple[Error, list[int]]:
 
 
     for i in range(len(args)):
-        if args[i].startswith("0x"):
-            args[i] = int(args[i][2:], 16)
-        elif args[i].startswith("0b"):
-            args[i] = int(args[i][2:], 2)
-        else:
-            args[i] = int(args[i])
+        args[i] = convertStrToInt(args[i])
     return Error.OK, args, None
 
 
@@ -159,7 +164,7 @@ def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     return Error.OK, readToString(args[0], data, read_handler.PARAMS["--FIFO"]["value"], read_handler.base)
 
 
-def write(args: list, ipBus: IPBus.IPBus):
+def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
 
     for key in read_handler.PARAMS.keys():
@@ -182,21 +187,42 @@ def write(args: list, ipBus: IPBus.IPBus):
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
 
 
-def RMWbits(args: list, ipBus: IPBus.IPBus):
+def RMWbits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
+    base = read_handler.default_base
+    for i in range(len(args)):
+        if args[i] == "-H":
+            base = 16
+            args.pop(i)
+        elif args[i] == "-B":
+            base = 2
+            args.pop(i)
 
-    args = args_to_int(args)
+    error, args, _ = args_to_int(args, "read")
+    if error != Error.OK:
+        return error, "Invalid arguments"
 
     data = ipBus.readModifyWriteBits(args[0], args[1], args[2])
     
-    return readToString(args[0], [data], False)
+    return Error.OK, readToString(args[0], [data], False, base)
 
-def RMWsum(args: list, ipBus: IPBus.IPBus):
+def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+    args = list(args)
+    base = read_handler.default_base
     for i in range(len(args)):
-        args[i] = int(args[i])
+        if args[i] == "-H":
+            base = 16
+            args.remove("-H")
+        elif args[i] == "-B":
+            base = 2
+            args.remove("-B")
 
+    error, args, _ = args_to_int(args, "read")
+    if error != Error.OK:
+        return error, "Invalid arguments"
+    
     data = ipBus.readModifyWriteSum(args[0], args[1])
-    return readToString(args[0], [data], False)
+    return Error.OK, readToString(args[0], [data], False, base)
 
 
 
