@@ -19,6 +19,7 @@ class IPBus:
     address = ADDRESS("localhost", 50001)
     nextPackeID: int
     status = StatusPacket()
+    _id: int
 
     def __init__(self, IP_address: str | None = "localhost", IP_port: str | None = 50001):
         if not IP_address is None:
@@ -27,6 +28,8 @@ class IPBus:
             self.address.port = IP_port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.settimeout(1)
+
+        self._id = 0
 
     def __del__(self):
         self.socket.close()
@@ -37,6 +40,10 @@ class IPBus:
         n: int = self.socket.sendto(toSend, self.address())
         if (n == -1) or (n != len(toSend)):
             return False
+
+        self._id += 1
+        if self._id > 0xFFF:
+            self._id = 0
         return True
 
     def __reading(self) -> tuple[bool, bytearray]:
@@ -80,7 +87,7 @@ class IPBus:
                     data[1] : list[int] : list of data read
         '''
         transactionType = TransactionType["read"] if not FIFO else TransactionType["nonIncrementingRead"]
-        header = TransactionHeader(transactionType, nWords, id=0)
+        header = TransactionHeader(transactionType, nWords, id=self._id)
         packetHeader = PacketHeader(PacketType["control"])
         toSend = packetHeader.toBytesArray("little")
         toSend = [*toSend, *header.toBytesArray("little")]
@@ -119,7 +126,7 @@ class IPBus:
 
         packetHeader = PacketHeader(PacketType["control"])
         transactionType = TransactionType["write"] if not FIFO else TransactionType["nonIncrementingWrite"]
-        header = TransactionHeader(transactionType, len(data), id=0)
+        header = TransactionHeader(transactionType, len(data), id=self._id)
         toSend = packetHeader.toBytesArray("little")
         toSend = [*toSend, *header.toBytesArray()]
         toSend = [*toSend, *startRegisterAddress.to_bytes(4, "little")]
@@ -148,7 +155,7 @@ class IPBus:
             X - value stored in register
             Y - new value stored in register
         '''
-        header = TransactionHeader(TransactionType["RMWbits"], 1, id=0)
+        header = TransactionHeader(TransactionType["RMWbits"], 1, id=self._id)
         packetHeader = PacketHeader(PacketType["control"])
         toSend = packetHeader.toBytesArray("little")
         toSend = [*toSend, *header.toBytesArray()]
@@ -177,7 +184,7 @@ class IPBus:
         if addend < 0:
             signed_add = True
 
-        header = TransactionHeader(TransactionType["RMWsum"], 1, id=0)
+        header = TransactionHeader(TransactionType["RMWsum"], 1, id=self._id)
         packetHeader = PacketHeader(PacketType["control"])
         toSend = packetHeader.toBytesArray("little")
         toSend = [*toSend, *header.toBytesArray()]
