@@ -140,7 +140,6 @@ def read_file(args: list):
     for line in file:
         line = line.strip("\n")
         line = line.strip("\r")
-        # line = line.split(" ")
         status, ans = execute_command(line.split(" "))
 
         if status == Error.OK:
@@ -182,7 +181,6 @@ PARAMS = {
     "-i"    : {"minargs": 2, "handler": set_inFile, "nextState": State.READ_FILE,   "usage": "[file] -- read from file | default: stdin"},
     "-o"    : {"minargs": 2, "handler": set_outFile,"nextState": State.CLI,         "usage": "[file] -- store output to file | default: only display on stdout"},
     "--ip"  : {"minargs": 2, "handler": set_ip_as_param, "nextState": State.CLI,    "usage": "[ip] ([port])"},
-    # "--csv" : {"minargs": 0, "handler": CSV_format, "nextState": State.CLI,         "usage": "output in csv format"},
     "--help": {"minargs": 0, "handler": param_help, "nextState": State.OK_EXIT,     "usage": "display help"},
 }
 

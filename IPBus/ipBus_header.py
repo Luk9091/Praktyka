@@ -40,12 +40,9 @@ class PacketHeader:
         self.packetType = packetType
         self.packetID = id
 
-
-    def __int__(self) -> int:
-        return self.protocolVersion << 28 | self.rsvd << 24 | self.packetID << 8 | self.byteOrder << 4 | self.packetType
-
-    def toBytesArray(self, endian = "big"):
-        return bytearray(int(self).to_bytes(4, endian))
+    def toBytesArray(self, endian: str = "big") -> bytearray:
+        data = self.protocolVersion << 28 | self.rsvd << 24 | self.packetID << 8 | self.byteOrder << 4 | self.packetType
+        return bytearray(int(data).to_bytes(4, endian))
 
     def fromBytesArray(self, data: bytearray) -> None:
         self.protocolVersion    = data[0] >> 4 & 0xF
@@ -74,10 +71,6 @@ class TransactionHeader:
         self.words = nWords
         self.transactionID = id
 
-    def __int__(self) -> int:
-        return self.protocolVersion << 28 | self.transactionID << 16 | self.words << 8 | self.typeID << 4 | self.infoCode
-
-
     def infoCodeString(self) -> str:
         if (self.infoCode in TransactionInfoCodeStringType):
             return TransactionInfoCodeStringType[self.infoCode]
@@ -85,7 +78,8 @@ class TransactionHeader:
             return TransactionInfoCodeStringType[-1]
     
     def toBytesArray(self, endian: str = "little"):
-        return bytearray(int(self).to_bytes(4, endian))
+        data = self.protocolVersion << 28 | self.transactionID << 16 | self.words << 8 | self.typeID << 4 | self.infoCode
+        return bytearray(int(data).to_bytes(4, endian))
 
     
     def fromBytesArray(self, data: bytearray) -> None:
@@ -121,7 +115,7 @@ class StatusPacket():
 
     def toBytesArray(self) -> bytearray:
         byte = []
-        byte = [*byte, *self.packetHeader.toBytesArray()]
+        byte = [*byte, *self.packetHeader.toBytesArray("big")]
         byte = [*byte, *self.MTU.to_bytes(4, "big")]
         byte = [*byte, *self.nResponseBuffers.to_bytes(4, "big")]
         byte = [*byte, *self.nextPacketID.to_bytes(4, "big")]

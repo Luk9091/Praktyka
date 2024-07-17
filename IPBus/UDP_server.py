@@ -15,6 +15,10 @@ try:
 
         print("Received data: ", data)
         UDP_serverSocket.sendto(data, address)
+
+        for i in range(0, len(data), 4):
+            value = int.from_bytes(data[i:i+4], "little")
+            print(f"{int(i/4):2d}: {value:8X}")
 except:
     print("Error")
     

@@ -140,7 +140,6 @@ def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     for key in read_handler.PARAMS.keys():
         if key in args:
             read_handler.PARAMS[key]["value"] = read_handler.PARAMS[key]["handler"](args)
-            # args.remove(key)
 
     error, args, reg = args_to_int(args, "read")
     if error != Error.OK:
@@ -155,9 +154,8 @@ def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     if (status != 0):
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
     
-    ans = data[0]
     if not reg is None:
-        ans = (ans & ((2**reg["bits_pos"]["LEN"]-1) << reg["bits_pos"]["LSB"])) >> reg["bits_pos"]["LSB"]
+        data[0] = (data[0] & ((2**reg["bits_pos"]["LEN"]-1) << reg["bits_pos"]["LSB"])) >> reg["bits_pos"]["LSB"]
         if reg["range"]["min"] < 0:
             read_handler.PARAMS["-s"]["value"] = True
 
@@ -171,8 +169,6 @@ def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         if key in args:
             write_handler.PARAMS[key]["value"] = write_handler.PARAMS[key]["handler"](args)
 
-    # for i in range(len(args)):
-    #     args[i] = int(args[i])
     error, args, _ = args_to_int(args, "write")
     if error != Error.OK:
         return error, "Invalid arguments"
@@ -181,6 +177,8 @@ def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         status = ipBus.write(args[0], args[1:], write_handler.PARAMS["--FIFO"]["value"])
     except TimeoutError:
         return Error.TIMEOUT, "Timeout error"
+    
+
     if status == Error.OK.value:
         return Error.OK, "Write successful"
     else:
@@ -202,8 +200,13 @@ def RMWbits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     if error != Error.OK:
         return error, "Invalid arguments"
 
-    data = ipBus.readModifyWriteBits(args[0], args[1], args[2])
+    try:
+        infoCode, data = ipBus.readModifyWriteBits(args[0], args[1], args[2])
+    except TimeoutError:
+        return Error.TIMEOUT, "Timeout error"
     
+    if infoCode != 0:
+        return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[infoCode]
     return Error.OK, readToString(args[0], [data], False, base)
 
 def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
@@ -221,7 +224,13 @@ def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     if error != Error.OK:
         return error, "Invalid arguments"
     
-    data = ipBus.readModifyWriteSum(args[0], args[1])
+    try:
+        status, data = ipBus.readModifyWriteSum(args[0], args[1])
+    except TimeoutError:
+        return Error.TIMEOUT, "Timeout error"
+
+    if status != 0:
+        return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
     return Error.OK, readToString(args[0], [data], False, base)
 
 
