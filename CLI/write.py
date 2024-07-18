@@ -3,6 +3,8 @@ def FIFO(args: list):
     return True
 
 
-PARAMS = {
-    "--FIFO": {"value": False, "handler": FIFO},
-}
+def getParams():
+    PARAMS = {
+        "--FIFO": {"value": False, "handler": FIFO},
+    }
+    return PARAMS

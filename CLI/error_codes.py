@@ -14,3 +14,4 @@ class Error(Enum):
     READ_ONLY = -8
     INVALID_REGISTER = -9
     INVALID_VALUE = -10
+    EMPTY_LINE = -11

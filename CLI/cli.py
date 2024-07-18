@@ -54,9 +54,11 @@ def param_help(args, ipBus = None):
 
 def execute_command(args: list) -> tuple[Error, str]:
     args = list(args)
+    if "" in args:
+        args.remove("")
     if len(args) == 0:
-        ans = "Missing command. \nValid: %s" % ", ".join(COMMANDS.keys())
-        return Error.INVALID_COMMAND, ans
+        # ans = "Missing command. \nValid: %s" % ", ".join(COMMANDS.keys())
+        return Error.EMPTY_LINE, ""
 
     cmd = args[0].lower()
     args = args[1:]
@@ -83,20 +85,20 @@ def execute_command(args: list) -> tuple[Error, str]:
 def Init(args: list) -> State:
     state = State.CLI
 
-    for cmd in args:
-        if cmd in PARAMS.keys():
-            error, msg = PARAMS[cmd]["handler"](args, ipBus=ipBus)
+    for key in PARAMS.keys():
+        if key in args:
+            error, msg = PARAMS[key]["handler"](args, ipBus=ipBus)
             if error != Error.OK:
                 print(f"Error: {msg}")
                 return State.ERR_EXIT
 
-            if PARAMS[cmd]["nextState"].value > state.value:
-                state = PARAMS[cmd]["nextState"]
+            if PARAMS[key]["nextState"].value > state.value:
+                state = PARAMS[key]["nextState"]
                 
             
 
-    for cmd in args:
-        if cmd in COMMANDS.keys():
+    for key in COMMANDS.keys():
+        if key in args:
             try:
                 status, ans = execute_command(args)
                 if status == Error.OK:
@@ -119,16 +121,23 @@ def CLI(args: list):
     while True:
         try:
             read = input(f"{ipBus.address.IP} << ")
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, EOFError):
             OK_exit()
 
+        if '#' in read:
+            read = read[:read.index('#')]
         status, ans = execute_command(read.split(" "))
         if status == Error.OK:
             print(ans)
             if not output_file is None:
                 write_file(ipBus.address.IP, read, ans)
+        elif status == Error.EMPTY_LINE:
+            continue
         else:
-            print(f"Error: {ans}")
+            ans = f"Error: {ans}"
+            # if not output_file is None:
+            #     write_file(ipBus.address.IP, read, ans)
+            print(ans)
     
 
 def write_file(dev, command, ans):
@@ -138,16 +147,25 @@ def write_file(dev, command, ans):
 def read_file(args: list):
     file = open(input_file, "r")
     for line in file:
+        if '#' in line:
+            line = line[:line.index('#')]
+
         line = line.strip("\n")
         line = line.strip("\r")
+
         status, ans = execute_command(line.split(" "))
 
         if status == Error.OK:
             print(ans)
             if not output_file is None:
                 write_file(ipBus.address.IP, line, ans)
+        elif status == Error.EMPTY_LINE:
+            continue
         else:
-            print(f"Error: {ans}")
+            ans = f"Error: {ans}"
+            if not output_file is None:
+                write_file(ipBus.address.IP, line, ans)
+            print(ans)
             break
     file.close()
 
@@ -169,10 +187,11 @@ STATE = {
 COMMANDS = {
     "ip"     : {"minargs": 0, "handler": set_ip,        "usage": "ip [ip] ([port])"},
     "status" : {"minargs": 0, "handler": read_status,   "usage": "status ([--timeout] [value])"},
-    "read"   : {"minargs": 1, "handler": read,          "usage": "read [address | name] ([-n] [value]) ([--FIFO]) ([-s] [-H/B])"},
+    "read"   : {"minargs": 1, "handler": read,          "usage": "read [address | name] ([-n] [value]) ([--FIFO]) ([-s]) ([-H/B])"},
     "write"  : {"minargs": 2, "handler": write,         "usage": "write [address | name] [value] ([values]...) ([--FIFO])"},
-    "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [mask] [value]"},
-    "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RMWsum [address | name] [value]"},
+    "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [ANDmask] [ORmask] ([-H/-B])"},
+    "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RMWsum [address | name] [value] ([-H/-B]) ([-s])"},
+    "setbits": {"minargs": 2, "handler": set_bits,      "usage": "setbits [name] [value] ([-H/-B])"},
     "help"   : {"minargs": 0, "handler": help,          "usage": "help ([command])"},
     "exit"   : {"minargs": 0, "handler": OK_exit,       "usage": "Just exit"},
 }
@@ -181,11 +200,12 @@ PARAMS = {
     "-i"    : {"minargs": 2, "handler": set_inFile, "nextState": State.READ_FILE,   "usage": "[file] -- read from file | default: stdin"},
     "-o"    : {"minargs": 2, "handler": set_outFile,"nextState": State.CLI,         "usage": "[file] -- store output to file | default: only display on stdout"},
     "--ip"  : {"minargs": 2, "handler": set_ip_as_param, "nextState": State.CLI,    "usage": "[ip] ([port])"},
-    "--help": {"minargs": 0, "handler": param_help, "nextState": State.OK_EXIT,     "usage": "display help"},
+    "--help": {"minargs": 0, "handler": param_help, "nextState": State.OK_EXIT,     "usage": "([command]) -- display help"},
 }
 
 
 
 if __name__ == "__main__":
     args = sys.argv[1:]
+    # args = ["--ip", "172.20.75.180"]
     main(args)

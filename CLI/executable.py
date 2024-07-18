@@ -41,7 +41,7 @@ def interpretive_register(args: list, readWrite: str) -> tuple[Error, list[int],
                 return Error.OK, [REG["address"], value], REG
             else:
                 return Error.INVALID_VALUE, [], None
-        except ValueError or IndexError:
+        except (ValueError, IndexError):
             return Error.INVALID_VALUE, [], None
 
 
@@ -124,8 +124,13 @@ def readToString(startAddress: int, data: list[int], FIFO: bool, base: int) -> s
     string = ""
 
     if not FIFO:
-        for i in range(len(data)):
-            string = convertIntToStr(data[i], base)
+        if len(data) == 1:
+            string = convertIntToStr(data[0], base)
+        else:
+            for i in range(len(data)):
+                string += convertIntToStr(data[i], base)
+                if i != len(data) - 1:
+                    string += ", "
     else:
         # string =  "0x%08X:" % startAddress
         string = convertIntToStr(data[0], base)
@@ -137,9 +142,10 @@ def readToString(startAddress: int, data: list[int], FIFO: bool, base: int) -> s
 
 def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
-    for key in read_handler.PARAMS.keys():
+    PARAMS = read_handler.getParams()
+    for key in PARAMS.keys():
         if key in args:
-            read_handler.PARAMS[key]["value"] = read_handler.PARAMS[key]["handler"](args)
+            PARAMS[key]["value"] = PARAMS[key]["handler"](args)
 
     error, args, reg = args_to_int(args, "read")
     if error != Error.OK:
@@ -147,7 +153,7 @@ def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 
 
     try: 
-        status, data = ipBus.read(args[0], read_handler.PARAMS["-n"]["value"], read_handler.PARAMS["--FIFO"]["value"], signed=read_handler.PARAMS["-s"]["value"])
+        status, data = ipBus.read(args[0], PARAMS["-n"]["value"], PARAMS["--FIFO"]["value"], signed=PARAMS["-s"]["value"])
     except TimeoutError:
         return Error.TIMEOUT, "Timeout error"
 
@@ -157,24 +163,30 @@ def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     if not reg is None:
         data[0] = (data[0] & ((2**reg["bits_pos"]["LEN"]-1) << reg["bits_pos"]["LSB"])) >> reg["bits_pos"]["LSB"]
         if reg["range"]["min"] < 0:
-            read_handler.PARAMS["-s"]["value"] = True
+            PARAMS["-s"]["value"] = True
 
-    return Error.OK, readToString(args[0], data, read_handler.PARAMS["--FIFO"]["value"], read_handler.base)
+    base = 10
+    if PARAMS["-H"]["value"] == 16:
+        base = 16
+    elif PARAMS["-B"]["value"] == 2:
+        base = 2
+    return Error.OK, readToString(args[0], data, PARAMS["--FIFO"]["value"], base)
 
 
 def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
+    PARAMS = write_handler.getParams()
 
-    for key in read_handler.PARAMS.keys():
+    for key in PARAMS.keys():
         if key in args:
-            write_handler.PARAMS[key]["value"] = write_handler.PARAMS[key]["handler"](args)
+            PARAMS[key]["value"] = PARAMS[key]["handler"](args)
 
     error, args, _ = args_to_int(args, "write")
     if error != Error.OK:
         return error, "Invalid arguments"
 
     try:
-        status = ipBus.write(args[0], args[1:], write_handler.PARAMS["--FIFO"]["value"])
+        status = ipBus.write(args[0], args[1:], PARAMS["--FIFO"]["value"])
     except TimeoutError:
         return Error.TIMEOUT, "Timeout error"
     
@@ -188,15 +200,14 @@ def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 def RMWbits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
     base = read_handler.default_base
-    for i in range(len(args)):
-        if args[i] == "-H":
-            base = 16
-            args.pop(i)
-        elif args[i] == "-B":
-            base = 2
-            args.pop(i)
+    if "-H" in args:
+        base = 16
+        args.remove("-H")
+    elif "-B" in args:
+        base = 2
+        args.remove("-B")
 
-    error, args, _ = args_to_int(args, "read")
+    error, args, reg = args_to_int(args, "read")
     if error != Error.OK:
         return error, "Invalid arguments"
 
@@ -212,13 +223,12 @@ def RMWbits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
     base = read_handler.default_base
-    for i in range(len(args)):
-        if args[i] == "-H":
-            base = 16
-            args.remove("-H")
-        elif args[i] == "-B":
-            base = 2
-            args.remove("-B")
+    if "-H" in args:
+        base = 16
+        args.remove("-H")
+    elif "-B" in args:
+        base = 2
+        args.remove("-B")
 
     error, args, _ = args_to_int(args, "read")
     if error != Error.OK:
@@ -232,6 +242,38 @@ def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     if status != 0:
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
     return Error.OK, readToString(args[0], [data], False, base)
+
+
+
+def set_bits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+    args = list(args)
+    base = read_handler.default_base
+    if "-H" in args:
+        base = 16
+        args.remove("-H")
+    elif "-B" in args:
+        base = 2
+        args.remove("-B")
+
+    error, args, reg = args_to_int(args, "read")
+    if reg is None:
+        return Error.INVALID_REGISTER, "Enter register address by name"
+    if error != Error.OK:
+        return error, "Invalid arguments"
+    
+    
+    ANDmask = (((2**reg["bits_pos"]["LEN"]-1) << reg["bits_pos"]["LSB"]) ^ 0xFFFFFFFF)
+    ORmask  = (2**args[1]) << reg["bits_pos"]["LSB"]
+    
+    try:
+        status, data = ipBus.readModifyWriteBits(args[0], ANDmask, ORmask)
+    except TimeoutError:
+        return Error.TIMEOUT, "Timeout error"
+    if status != 0:
+        return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
+    
+    return Error.OK, readToString(args[0], [data], False, base)
+
 
 
 
