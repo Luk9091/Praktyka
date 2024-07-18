@@ -245,7 +245,7 @@ def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 
 
 
-def set_bits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+def set_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
     base = read_handler.default_base
     if "-H" in args:
@@ -256,17 +256,50 @@ def set_bits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         args.remove("-B")
 
     error, args, reg = args_to_int(args, "read")
-    if reg is None:
-        return Error.INVALID_REGISTER, "Enter register address by name"
+    # if reg is None:
+    #     return Error.INVALID_REGISTER, "Enter register address by name"
     if error != Error.OK:
         return error, "Invalid arguments"
     
     
-    ANDmask = (((2**reg["bits_pos"]["LEN"]-1) << reg["bits_pos"]["LSB"]) ^ 0xFFFFFFFF)
-    ORmask  = (2**args[1]) << reg["bits_pos"]["LSB"]
+    ORmask = 2**args[1]
+    if not reg is None:
+        ORmask  = (2**args[1]) << reg["bits_pos"]["LSB"]
+    ANDmask = 0xFFFF_FFFF ^ ORmask
     
     try:
         status, data = ipBus.readModifyWriteBits(args[0], ANDmask, ORmask)
+    except TimeoutError:
+        return Error.TIMEOUT, "Timeout error"
+    if status != 0:
+        return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
+    
+    return Error.OK, readToString(args[0], [data], False, base)
+
+def clear_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+    args = list(args)
+    base = read_handler.default_base
+    if "-H" in args:
+        base = 16
+        args.remove("-H")
+    elif "-B" in args:
+        base = 2
+        args.remove("-B")
+
+    error, args, reg = args_to_int(args, "read")
+    # if reg is None:
+    #     return Error.INVALID_REGISTER, "Enter register address by name"
+    if error != Error.OK:
+        return error, "Invalid arguments"
+    
+    
+    ORmask = 2**args[1]
+    if not reg is None:
+        ORmask  = (2**args[1]) << reg["bits_pos"]["LSB"]
+    ANDmask = 0xFFFF_FFFF ^ ORmask
+    
+    try:
+        status, data = ipBus.readModifyWriteBits(args[0], ANDmask, 0)
     except TimeoutError:
         return Error.TIMEOUT, "Timeout error"
     if status != 0:
