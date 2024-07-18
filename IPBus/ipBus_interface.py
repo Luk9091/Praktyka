@@ -35,7 +35,7 @@ class IPBus:
         self.socket.close()
 
 
-    def __writing(self, toSend) -> bool:
+    def __writing(self, toSend: list | bytearray) -> bool:
         if not isinstance(toSend, bytearray): toSend = bytearray(toSend)
         n: int = self.socket.sendto(toSend, self.address())
         if (n == -1) or (n != len(toSend)):
@@ -213,6 +213,8 @@ if __name__ == '__main__':
     from colorama import Fore, Style, Back
     import sys
     
+    TEST_REG = 0x1004
+    TEST_REG2= 0x1005
 
     colorama_init(autoreset=True)
     print(f"{Fore.RED}{Back.GREEN}IPBus interface unit test:")
@@ -229,7 +231,7 @@ if __name__ == '__main__':
 
 
     save = 0x16
-    status = ipBus.write(0x1004, save, False)
+    status = ipBus.write(TEST_REG, save, False)
     if status >= 0:
         print(f"{Fore.GREEN}Write success")
         print(TransactionInfoCodeStringType[status])
@@ -238,7 +240,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
 
-    status, data = ipBus.read(0x1004, 1, False)
+    status, data = ipBus.read(TEST_REG, 1, False)
     if status >= 0 and data[0] == save:
         print(f"{Fore.GREEN}Read success")
         print(f"Read data: {data}")
@@ -246,9 +248,9 @@ if __name__ == '__main__':
         print(f"{Fore.RED}Read failed")
         sys.exit(1)
 
-    ipBus.write(0x1004, 0xFFFF0000, False)
-    ipBus.readModifyWriteBits(0x1004, 0xFF00_0000, 0xFF)
-    status, data = ipBus.read(0x1004, 1, False)
+    ipBus.write(TEST_REG, 0xFFFF0000, False)
+    ipBus.readModifyWriteBits(TEST_REG, 0xFF00_0000, 0xFF)
+    status, data = ipBus.read(TEST_REG, 1, False)
     if status >= 0 and data[0] == 0xFF0000FF:
         print(f"{Fore.GREEN}ReadModifyWriteBits success")
         print(f"Read data: {data}")
@@ -258,9 +260,9 @@ if __name__ == '__main__':
         sys.exit(1)
 
     
-    ipBus.write(0x1004, 0x01, False)
-    ipBus.readModifyWriteSum(0x1004, 0x10)
-    status, data = ipBus.read(0x1004, 1, False)
+    ipBus.write(TEST_REG, 0x01, False)
+    ipBus.readModifyWriteSum(TEST_REG, 0x10)
+    status, data = ipBus.read(TEST_REG, 1, False)
     if status >= 0 and data[0] == 0x11:
         print(f"{Fore.GREEN}ReadModifyWriteSum success")
         print(f"Read data: {data}")
@@ -270,8 +272,8 @@ if __name__ == '__main__':
 
 
 
-    ipBus.write(0x1004, [0x01, 0x02], False)
-    status, data = ipBus.read(0x1004, 2, False)
+    ipBus.write(TEST_REG, [0x01, 0x02], False)
+    status, data = ipBus.read(TEST_REG, 2, False)
     if status >= 0 and data == [0x01, 0x02]:
         print(f"{Fore.GREEN}Read success")
         print(f"Read data: {data}")
