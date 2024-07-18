@@ -191,7 +191,8 @@ COMMANDS = {
     "write"  : {"minargs": 2, "handler": write,         "usage": "write [address | name] [value] ([values]...) ([--FIFO])"},
     "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [ANDmask] [ORmask] ([-H/-B])"},
     "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RMWsum [address | name] [value] ([-H/-B]) ([-s])"},
-    "setbits": {"minargs": 2, "handler": set_bits,      "usage": "setbits [name] [value] ([-H/-B])"},
+    "setbit" : {"minargs": 2, "handler": set_bit,       "usage": "setBit [name] [bit] ([-H/-B])"},
+    "clearbit":{"minargs": 2, "handler": clear_bit,     "usage": "clearBit [name] [bit] ([-H/-B])"},
     "help"   : {"minargs": 0, "handler": help,          "usage": "help ([command])"},
     "exit"   : {"minargs": 0, "handler": OK_exit,       "usage": "Just exit"},
 }
