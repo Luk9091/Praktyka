@@ -136,8 +136,8 @@ The seconds option is to read the register by its name:\
 ```
 
 Read multiple register:\
-**Note:** The `[-n]` parameter is used to specify the number of registers to read.\
-**Note:** The `[-s]`, `[-H]`, `[-B]` parameters are used to display every read value as a signed integer.
+The `[-n]` parameter is used to specify the number of registers to read.\
+**Note:** The `[-s]` parameters are used to display every read value as a signed integer. Also `[-H]` and `[-B]` set every read value as hex or binary.
 ```bash
     172.20.75.180 << read BOARD_STATUS -n 3
 # Output: 
@@ -154,7 +154,7 @@ Read from the FIFO buffer:
     # Read FIFO register
 ```
 
-In default register name are from **TCM**, if you want to read from **PM** and **channel 12**, you need to specify the register name:
+In default register name are from **TCM**, if you want to read from **PM** and **channel 2**, you need to specify the register name:
 ```bash
     172.20.75.180 << read PMA0 ADC0_BASELINE CH02
 #                         ^^^^ ^^^^^^^^^^^^^ ^^^^
@@ -263,7 +263,7 @@ Similar to RWMBits, but the addend is added to the read value.
     172.20.75.180 << RMWBits BOARD_STATUS 0x0F
 # Output:
     xxxxxxxx
-    # Old date from: 0x0F: xxxxxxxx
+    # Old date from: BOARD_STATUS: xxxxxxxx
     # New data in register: xxxxxxxx + 0xF
 ```
 
@@ -272,13 +272,20 @@ Similar to RWMBits, but the addend is added to the read value.
 
 
 ## SetBits and ClearBits
-Set or clear the bit in the register.
+Set or clear the bit in the register. In both cases, 
+if do not specified bit number, program in default set or clear the first bit.
 
 ```bash
-    172.20.75.180 << setBits ORA_enable (0)
+    172.20.75.180 << setBits STATUS_OPTIONCODE (0)
 # Output:
     Old data from ORA_enable: X
 ```
+```bash
+    172.20.75.180 << clearBits STATUS_OPTIONCODE (0)
+# Output:
+    Old data from ORA_enable: X
+```
+
 ---
 If read register by name, value is moved to only useful bits.
 For example register ***ORA_ENABLED***, is only ones bit of ***STATUS_OPTIONCODE*** registers.
