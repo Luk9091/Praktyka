@@ -21,15 +21,15 @@ try:
         readonly = input("Is it read only? (y/N): ").lower() == "y"
         LSB = str_to_int(input("Enter the LSB: "))
         LEN = str_to_int(input("Enter the LEN: "))
-        additionalValue = input("Enter additional value (channel + 1): ")
-        if additionalValue == "":
-            additionalValue = "CHANNELS_1"
+        additionalValue = input("Enter additional value (None | PM | CHANNEL [number]): ")
+        if additionalValue == "" or additionalValue.lower() == "none":
+            additionalValue = "None"
         elif additionalValue.isnumeric():
             additionalValue = f"CHANNELS_{additionalValue}"
-        elif additionalValue.lower() == "none":
-            additionalValue = "None"
+        elif additionalValue.lower() == "pm":
+            additionalValue = "PM_REGISTERS"
 
-        out = """"%s"     : {"address": 0x%04X, "range": {"min": %2i,     "max": %2i},    "readonly": %s, "bits_pos": {"LSB": %i, "LEN": %i}, "additionalValue": %s},\n""" % (name, address, minimum, maximum, readonly, LSB, LEN, additionalValue)
+        out = """"%s"     : {"address": 0x%04X, "range": {"min": %10i,     "max": %10i},    "readonly": %s, "bits_pos": {"LSB": %2i, "LEN": %2i}, "additionalValue": %s},\n""" % (name, address, minimum, maximum, readonly, LSB, LEN, additionalValue)
         with open("reg_address.txt", "a") as f:
             f.write(out)
         print(out)
