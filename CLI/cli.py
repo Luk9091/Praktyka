@@ -51,6 +51,7 @@ def param_help(args, ipBus = None):
     print("Available parameters: %s" % ", ".join(PARAMS.keys()))
     for key in PARAMS.keys():
         print(f"\t{key}: {PARAMS[key]['usage']}")
+    return Error.OK, ""
 
 def execute_command(args: list) -> tuple[Error, str]:
     args = list(args)
@@ -126,6 +127,7 @@ def CLI(args: list):
 
         if '#' in read:
             read = read[:read.index('#')]
+        read = read.strip("\t")
         status, ans = execute_command(read.split(" "))
         if status == Error.OK:
             print(ans)
@@ -150,6 +152,7 @@ def read_file(args: list):
         if '#' in line:
             line = line[:line.index('#')]
 
+        line = line.strip("\t")
         line = line.strip("\n")
         line = line.strip("\r")
 
@@ -191,9 +194,9 @@ COMMANDS = {
     "write"  : {"minargs": 2, "handler": write,         "usage": "write [address | name] [value] ([values]...) ([--FIFO])"},
     "rmwbits": {"minargs": 3, "handler": RMWbits,       "usage": "RMWbits [address | name] [ANDmask] [ORmask] ([-H/-B])"},
     "rmwsum" : {"minargs": 1, "handler": RMWsum,        "usage": "RMWsum [address | name] [value] ([-H/-B]) ([-s])"},
-    "setbit" : {"minargs": 2, "handler": set_bit,       "usage": "setBit [name] [bit] ([-H/-B])"},
-    "clearbit":{"minargs": 2, "handler": clear_bit,     "usage": "clearBit [name] [bit] ([-H/-B])"},
-    "help"   : {"minargs": 0, "handler": help,          "usage": "help ([command])"},
+    "setbit" : {"minargs": 1, "handler": set_bit,       "usage": "setBit [name] [bit | default = 0] ([-H/-B])"},
+    "clearbit":{"minargs": 1, "handler": clear_bit,     "usage": "clearBit [name] [bit | default = 0] ([-H/-B])"},
+    "help"   : {"minargs": 0, "handler": help,          "usage": "help ([command]) -- add command to get help"},
     "exit"   : {"minargs": 0, "handler": OK_exit,       "usage": "Just exit"},
 }
 
@@ -208,5 +211,4 @@ PARAMS = {
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    # args = ["--ip", "172.20.75.180"]
     main(args)

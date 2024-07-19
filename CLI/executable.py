@@ -1,6 +1,6 @@
 import IPBus
-import read as read_handler
-import write as write_handler
+import read as read_params
+import write as write_params
 from error_codes import Error
 
 def interpretive_register(args: list, readWrite: str) -> tuple[Error, list[int], dict]:
@@ -137,15 +137,15 @@ def readToString(startAddress: int, data: list[int], FIFO: bool, base: int) -> s
         for i in range(1, len(data)):
             string += ", " + convertIntToStr(data[i], base)
 
-    read_handler.base = read_handler.default_base
+    read_params.base = read_params.default_base
     return string.rstrip("\n")
 
 def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
-    PARAMS = read_handler.getParams()
+    PARAMS = read_params.getParams()
     for key in PARAMS.keys():
         if key in args:
-            PARAMS[key]["value"] = PARAMS[key]["handler"](args)
+            PARAMS[key]["value"] = PARAMS[key]["params"](args)
 
     error, args, reg = args_to_int(args, "read")
     if error != Error.OK:
@@ -175,11 +175,11 @@ def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 
 def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
-    PARAMS = write_handler.getParams()
+    PARAMS = write_params.getParams()
 
     for key in PARAMS.keys():
         if key in args:
-            PARAMS[key]["value"] = PARAMS[key]["handler"](args)
+            PARAMS[key]["value"] = PARAMS[key]["params"](args)
 
     error, args, _ = args_to_int(args, "write")
     if error != Error.OK:
@@ -199,7 +199,7 @@ def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 
 def RMWbits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
-    base = read_handler.default_base
+    base = read_params.default_base
     if "-H" in args:
         base = 16
         args.remove("-H")
@@ -222,7 +222,7 @@ def RMWbits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 
 def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
-    base = read_handler.default_base
+    base = read_params.default_base
     if "-H" in args:
         base = 16
         args.remove("-H")
@@ -230,12 +230,17 @@ def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         base = 2
         args.remove("-B")
 
-    error, args, _ = args_to_int(args, "read")
+    error, args, reg = args_to_int(args, "read")
     if error != Error.OK:
         return error, "Invalid arguments"
     
+    signed = False
+    if not reg is None:
+        if reg["range"]["min"] < 0:
+            signed = True
+            
     try:
-        status, data = ipBus.readModifyWriteSum(args[0], args[1])
+        status, data = ipBus.readModifyWriteSum(args[0], args[1], signed)
     except TimeoutError:
         return Error.TIMEOUT, "Timeout error"
 
@@ -247,7 +252,7 @@ def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 
 def set_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
-    base = read_handler.default_base
+    base = read_params.default_base
     if "-H" in args:
         base = 16
         args.remove("-H")
@@ -262,9 +267,17 @@ def set_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         return error, "Invalid arguments"
     
     
-    ORmask = 2**args[1]
+    try:
+        ORmask = 2**args[1]
+        bits = args[1]
+    except IndexError:
+        ORmask = 1
+        bits = 0
+        
     if not reg is None:
-        ORmask  = (2**args[1]) << reg["bits_pos"]["LSB"]
+        if ORmask > reg["range"]["max"]:
+            return Error.INVALID_VALUE, "Out of range, max bit: %d" % (reg["bits_pos"]["LEN"] - 1)
+        ORmask  = ORmask << reg["bits_pos"]["LSB"]
     ANDmask = 0xFFFF_FFFF ^ ORmask
     
     try:
@@ -274,11 +287,12 @@ def set_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     if status != 0:
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
     
+    data[0] = (data[0] >> bits) & 1
     return Error.OK, readToString(args[0], [data], False, base)
 
 def clear_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     args = list(args)
-    base = read_handler.default_base
+    base = read_params.default_base
     if "-H" in args:
         base = 16
         args.remove("-H")
@@ -293,9 +307,17 @@ def clear_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         return error, "Invalid arguments"
     
     
-    ORmask = 2**args[1]
+    try:
+        ORmask = 2**args[1]
+        bits = args[1]
+    except IndexError:
+        ORmask = 1
+        bits = 0
+        
     if not reg is None:
-        ORmask  = (2**args[1]) << reg["bits_pos"]["LSB"]
+        if ORmask > reg["range"]["max"]:
+            return Error.INVALID_VALUE, "Out of range, max bit: %d" % (reg["bits_pos"]["LEN"] - 1)
+        ORmask  = ORmask << reg["bits_pos"]["LSB"]
     ANDmask = 0xFFFF_FFFF ^ ORmask
     
     try:
@@ -305,6 +327,7 @@ def clear_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     if status != 0:
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
     
+    data[0] = (data[0] >> bits)
     return Error.OK, readToString(args[0], [data], False, base)
 
 
@@ -313,17 +336,14 @@ def clear_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 
 if __name__ == "__main__":
     print("This is not main module -- unit test of execute_command")
-    data = "PM0 OR_GATE 7"
-    data = data.split(" ")
-    print(interpretive_register(data, "read"))
-    print(interpretive_register(data, "write"))
+    data = "PMA0 OR_GATE 7"
+    print(interpretive_register(data.split(" "), "read"))
+    print(interpretive_register(data.split(" "), "write"))
 
     data = "temperature 2"
-    data = data.split(" ")
-    print(interpretive_register(data, "read"))
-    print(interpretive_register(data, "write"))
+    print(interpretive_register(data.split(" "), "read"))
+    print(interpretive_register(data.split(" "), "write"))
 
-    data = "temperature 2"
-    data = data.split(" ")
-    print(interpretive_register(data, "read"))
-    print(interpretive_register(data, "write"))
+    data = "DONT_EXIST 2"
+    print(interpretive_register(data.split(" "), "read"))
+    print(interpretive_register(data.split(" "), "write"))
