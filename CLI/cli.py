@@ -19,9 +19,9 @@ class State(Enum):
     ERR_EXIT = 4
     ERROR = 100
 
-def OK_exit(args: list = None, ipBus=None) -> None:
+def OK_exit(args: list = None, ipBus=None, register_dictionary = None) -> None:
     exit(0)
-def ERR_exit(args: list = None, ipBus=None) -> None:
+def ERR_exit(args: list = None, ipBus=None, register_dictionary = None) -> None:
     exit(1)
 
 def set_inFile(args: list, ipBus=None):
@@ -34,7 +34,7 @@ def set_outFile(args: list, ipBus=None):
     output_file = Path(args[args.index("-o") + 1])
     return Error.OK, "Output file set to %s" % output_file
 
-def help(args: list, ipBus = None):
+def help(args: list, ipBus = None, register_dictionary = None):
     if not isinstance(args, list):
         args = [args]
     if len(args) == 0:
@@ -53,7 +53,7 @@ def param_help(args, ipBus = None):
         print(f"\t{key}: {PARAMS[key]['usage']}")
     return Error.OK, ""
 
-def execute_command(args: list) -> tuple[Error, str]:
+def execute_command(args: list, register_dictionary: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, str]:
     args = list(args)
     if "" in args:
         args.remove("")
@@ -69,7 +69,7 @@ def execute_command(args: list) -> tuple[Error, str]:
             ans = "Missing arguments.\nUsage: %s" % COMMANDS[cmd]["usage"]
             return Error.INVALID_COMMAND, ans
     except KeyError:
-        ans = "Invalid command. \nValid: %s" % ", ".join(COMMANDS.keys())
+        ans = "\tInvalid command. \n\tValid: %s" % ", ".join(COMMANDS.keys())
         return Error.INVALID_COMMAND, ans
 
     if "--help" in args:
@@ -77,7 +77,7 @@ def execute_command(args: list) -> tuple[Error, str]:
         return status, ans
     
     try:
-        error, ans = COMMANDS[cmd]["handler"](args, ipBus=ipBus)
+        error, ans = COMMANDS[cmd]["handler"](args, ipBus=ipBus, register_dictionary=register_dictionary)
     except ValueError:
         return Error.INVALID_COMMAND, "Invalid arguments"
 

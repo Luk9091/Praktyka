@@ -3,8 +3,9 @@ import read as read_params
 import write as write_params
 from error_codes import Error
 
-def interpretive_register(args: list, readWrite: str) -> tuple[Error, list[int], dict]:
-    REG = {"address": 0, "range": None, "readonly": False, "bits_pos": None, "additionalValue": IPBus.registers.TCM_REGISTERS}
+def interpretive_register(args: list, readWrite: str, register_map: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, list[int], dict]:
+    # REG = {"address": 0, "range": None, "readonly": False, "bits_pos": None, "additionalValue": IPBus.registers.TCM_REGISTERS}
+    REG = {"address": 0, "range": None, "readonly": False, "bits_pos": None, "additionalValue": register_map}
 
     while not REG["additionalValue"] is None:
         try:
@@ -56,10 +57,10 @@ def convertStrToInt(value: str) -> int:
     else:
         return int(value)
 
-def args_to_int(args: list, readWrite: str) -> tuple[Error, list[int]]:
+def args_to_int(args: list, readWrite: str, register_map: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, list[int]]:
     try: 
         if args[0].upper() in IPBus.registers.TCM_REGISTERS.keys():
-            return interpretive_register(args, readWrite)
+            return interpretive_register(args, readWrite, register_map=register_map)
     except IndexError:
         return Error.INVALID_VALUE, [], None
 
@@ -89,7 +90,7 @@ def set_ip_as_param(args: list, ipBus: IPBus.IPBus):
 
     return Error.OK, "IP address set to %s:%d" % (ipBus.address.IP, ipBus.address.port)
 
-def set_ip(args: list, ipBus: IPBus.IPBus):
+def set_ip(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = None) -> tuple[Error, str]:
     if (args is None) or (len(args) == 0):
         return Error.OK, "Current IP: %s:%d" % (ipBus.address.IP, ipBus.address.port)
     
@@ -99,7 +100,7 @@ def set_ip(args: list, ipBus: IPBus.IPBus):
     
     return Error.OK, "IP address set to %s:%d" % (ipBus.address.IP, ipBus.address.port)
 
-def read_status(args: list, ipBus: IPBus.IPBus):
+def read_status(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = None) -> tuple[Error, str]:
     ipBus.statusRequest()
     try:
         status = ipBus.statusResponse()
@@ -112,7 +113,7 @@ def read_status(args: list, ipBus: IPBus.IPBus):
     return Error.STATUS_REQUEST, "IPBus status request failed"
 
 
-def convertIntToStr(value, base):
+def convertIntToStr(value, base) -> str:
     if base == 16:
         return f"0x{value:08X}"
     elif base == 2:
@@ -140,14 +141,14 @@ def readToString(startAddress: int, data: list[int], FIFO: bool, base: int) -> s
     read_params.base = read_params.default_base
     return string.rstrip("\n")
 
-def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+def read(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, str]:
     args = list(args)
     PARAMS = read_params.getParams()
     for key in PARAMS.keys():
         if key in args:
             PARAMS[key]["value"] = PARAMS[key]["params"](args)
 
-    error, args, reg = args_to_int(args, "read")
+    error, args, reg = args_to_int(args, "read", register_map=register_dictionary)
     if error != Error.OK:
         return error, "Invalid arguments"
 
@@ -173,7 +174,7 @@ def read(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     return Error.OK, readToString(args[0], data, PARAMS["--FIFO"]["value"], base)
 
 
-def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+def write(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, str]:
     args = list(args)
     PARAMS = write_params.getParams()
 
@@ -181,7 +182,7 @@ def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         if key in args:
             PARAMS[key]["value"] = PARAMS[key]["params"](args)
 
-    error, args, _ = args_to_int(args, "write")
+    error, args, _ = args_to_int(args, "write", register_map=register_dictionary)
     if error != Error.OK:
         return error, "Invalid arguments"
 
@@ -197,7 +198,7 @@ def write(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
 
 
-def RMWbits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+def RMWbits(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, str]:
     args = list(args)
     base = read_params.default_base
     if "-H" in args:
@@ -207,7 +208,7 @@ def RMWbits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         base = 2
         args.remove("-B")
 
-    error, args, reg = args_to_int(args, "read")
+    error, args, reg = args_to_int(args, "read", register_map=register_dictionary)
     if error != Error.OK:
         return error, "Invalid arguments"
 
@@ -220,7 +221,7 @@ def RMWbits(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[infoCode]
     return Error.OK, readToString(args[0], [data], False, base)
 
-def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+def RMWsum(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, str]:
     args = list(args)
     base = read_params.default_base
     if "-H" in args:
@@ -230,7 +231,7 @@ def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         base = 2
         args.remove("-B")
 
-    error, args, reg = args_to_int(args, "read")
+    error, args, reg = args_to_int(args, "read", register_map=register_dictionary)
     if error != Error.OK:
         return error, "Invalid arguments"
     
@@ -250,7 +251,7 @@ def RMWsum(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
 
 
 
-def set_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+def set_bit(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, str]:
     args = list(args)
     base = read_params.default_base
     if "-H" in args:
@@ -260,7 +261,7 @@ def set_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         base = 2
         args.remove("-B")
 
-    error, args, reg = args_to_int(args, "read")
+    error, args, reg = args_to_int(args, "read", register_map=register_dictionary)
     # if reg is None:
     #     return Error.INVALID_REGISTER, "Enter register address by name"
     if error != Error.OK:
@@ -290,7 +291,7 @@ def set_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
     data[0] = (data[0] >> bits) & 1
     return Error.OK, readToString(args[0], [data], False, base)
 
-def clear_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
+def clear_bit(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, str]:
     args = list(args)
     base = read_params.default_base
     if "-H" in args:
@@ -300,7 +301,7 @@ def clear_bit(args: list, ipBus: IPBus.IPBus) -> tuple[Error, str]:
         base = 2
         args.remove("-B")
 
-    error, args, reg = args_to_int(args, "read")
+    error, args, reg = args_to_int(args, "read", register_map=register_dictionary)
     # if reg is None:
     #     return Error.INVALID_REGISTER, "Enter register address by name"
     if error != Error.OK:
