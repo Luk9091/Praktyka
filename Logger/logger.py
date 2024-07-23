@@ -5,6 +5,8 @@ import threading
 from queue import Queue
 from pathlib import Path
 from typing import Literal
+import sys
+import netifaces as ni
 
 
 class IPBus_logger:
@@ -105,13 +107,15 @@ class IPBus_logger:
             
 
     def run(self):
+        print("Logger is running...")
+        print(f"Listening on {self.address()}")
         self.listen_thread.start()
 
         while self.running:
             if not self.recv_queue.empty():
                 data = []
                 local_time, address, rawData = self.recv_queue.get()
-                current_time = time.strftime("%Y-%m-%d_%H:%M:%S", local_time)
+                current_time = time.strftime("%Y-%m-%d %H:%M:%S", local_time)
 
                 header = IPBus.PacketHeader().fromBytesArray(rawData[0:4])
                 transaction = IPBus.TransactionHeader(bytesArray = rawData[4:8])
@@ -128,13 +132,27 @@ class IPBus_logger:
         
 
     def close(self):
-        self.running = False
         self.__del__()
+
+def argsToParams(args: list):
+    ip = "localhost"
+    port = 50001
+
+    if "--ip" in args:
+        ip = args[args.index("--ip") + 1]
+    if "--port" in args:
+        port = int(args[args.index("--port") + 1])
+    if "--eth" in args:
+        eth = args[args.index("--eth") + 1]
+        ip = ni.ifaddresses(eth)[ni.AF_INET][0]['addr']
+
+    return ip, port
 
 
 if __name__ == "__main__":
-    logger = IPBus_logger()
-    
+    args = sys.argv[1:]
+    ip, port = argsToParams(args)
+    logger = IPBus_logger(ip, port)
     try:
         logger.run()
     except KeyboardInterrupt:
