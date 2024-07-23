@@ -28,6 +28,8 @@ try:
             additionalValue = f"CHANNELS_{additionalValue}"
         elif additionalValue.lower() == "pm":
             additionalValue = "PM_REGISTERS"
+        else:
+            additionalValue = "None"
 
         out = """"%s"     : {"address": 0x%04X, "range": {"min": %10i,     "max": %10i},    "readonly": %s, "bits_pos": {"LSB": %2i, "LEN": %2i}, "additionalValue": %s},\n""" % (name, address, minimum, maximum, readonly, LSB, LEN, additionalValue)
         with open("reg_address.txt", "a") as f:
