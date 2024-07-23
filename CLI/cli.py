@@ -131,13 +131,13 @@ def CLI(args: list):
         status, ans = execute_command(read.split(" "))
         if status == Error.OK:
             print(ans)
-            if not output_file is None:
+            if output_file is not None:
                 write_file(ipBus.address.IP, read, ans)
         elif status == Error.EMPTY_LINE:
             continue
         else:
             ans = f"Error: {ans}"
-            # if not output_file is None:
+            # if output_file is not None:
             #     write_file(ipBus.address.IP, read, ans)
             print(ans)
     
@@ -160,13 +160,13 @@ def read_file(args: list):
 
         if status == Error.OK:
             print(ans)
-            if not output_file is None:
+            if output_file is not None:
                 write_file(ipBus.address.IP, line, ans)
         elif status == Error.EMPTY_LINE:
             continue
         else:
             ans = f"Error: {ans}"
-            if not output_file is None:
+            if output_file is not None:
                 write_file(ipBus.address.IP, line, ans)
             print(ans)
             break

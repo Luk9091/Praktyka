@@ -7,7 +7,7 @@ def interpretive_register(args: list, readWrite: str, register_map: dict = IPBus
     # REG = {"address": 0, "range": None, "readonly": False, "bits_pos": None, "additionalValue": IPBus.registers.TCM_REGISTERS}
     REG = {"address": 0, "range": None, "readonly": False, "bits_pos": None, "additionalValue": register_map}
 
-    while not REG["additionalValue"] is None:
+    while REG["additionalValue"] is not None:
         try:
             register = REG["additionalValue"][args[0].upper()]
         except KeyError:
@@ -17,11 +17,11 @@ def interpretive_register(args: list, readWrite: str, register_map: dict = IPBus
         REG["address"] += register["address"]
 
         REG["additionalValue"] = register["additionalValue"]
-        if not register["range"] is None:
+        if register["range"] is not None:
             REG["range"] = register["range"]
-        if not register["readonly"] is None:
+        if register["readonly"] is not None:
             REG["readonly"] = register["readonly"]
-        if not register["bits_pos"] is None:
+        if register["bits_pos"] is not None:
             REG["bits_pos"] = register["bits_pos"]
 
     for i in range(len(args)):
@@ -146,7 +146,7 @@ def read(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.regis
     PARAMS = read_params.getParams()
     for key in PARAMS.keys():
         if key in args:
-            PARAMS[key]["value"] = PARAMS[key]["params"](args)
+            PARAMS[key]["value"] = PARAMS[key]["handler"](args)
 
     error, args, reg = args_to_int(args, "read", register_map=register_dictionary)
     if error != Error.OK:
@@ -161,7 +161,7 @@ def read(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.regis
     if (status != 0):
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
     
-    if not reg is None:
+    if reg is not None:
         data[0] = (data[0] & ((2**reg["bits_pos"]["LEN"]-1) << reg["bits_pos"]["LSB"])) >> reg["bits_pos"]["LSB"]
         if reg["range"]["min"] < 0:
             PARAMS["-s"]["value"] = True
@@ -180,7 +180,7 @@ def write(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.regi
 
     for key in PARAMS.keys():
         if key in args:
-            PARAMS[key]["value"] = PARAMS[key]["params"](args)
+            PARAMS[key]["value"] = PARAMS[key]["handler"](args)
 
     error, args, _ = args_to_int(args, "write", register_map=register_dictionary)
     if error != Error.OK:
@@ -236,7 +236,7 @@ def RMWsum(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.reg
         return error, "Invalid arguments"
     
     signed = False
-    if not reg is None:
+    if reg is not None:
         if reg["range"]["min"] < 0:
             signed = True
             
@@ -275,7 +275,7 @@ def set_bit(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.re
         ORmask = 1
         bits = 0
         
-    if not reg is None:
+    if reg is not None:
         if ORmask > reg["range"]["max"]:
             return Error.INVALID_VALUE, "Out of range, max bit: %d" % (reg["bits_pos"]["LEN"] - 1)
         ORmask  = ORmask << reg["bits_pos"]["LSB"]
@@ -315,7 +315,7 @@ def clear_bit(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.
         ORmask = 1
         bits = 0
         
-    if not reg is None:
+    if reg is not None:
         if ORmask > reg["range"]["max"]:
             return Error.INVALID_VALUE, "Out of range, max bit: %d" % (reg["bits_pos"]["LEN"] - 1)
         ORmask  = ORmask << reg["bits_pos"]["LSB"]
