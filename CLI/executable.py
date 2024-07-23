@@ -59,7 +59,7 @@ def convertStrToInt(value: str) -> int:
 
 def args_to_int(args: list, readWrite: str, register_map: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, list[int]]:
     try: 
-        if args[0].upper() in IPBus.registers.TCM_REGISTERS.keys():
+        if args[0].upper() in register_map.keys():
             return interpretive_register(args, readWrite, register_map=register_map)
     except IndexError:
         return Error.INVALID_VALUE, [], None

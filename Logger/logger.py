@@ -140,11 +140,11 @@ def argsToParams(args: list):
 
     if "--ip" in args:
         ip = args[args.index("--ip") + 1]
-    if "--port" in args:
-        port = int(args[args.index("--port") + 1])
-    if "--eth" in args:
+    elif "--eth" in args:
         eth = args[args.index("--eth") + 1]
         ip = ni.ifaddresses(eth)[ni.AF_INET][0]['addr']
+    if "--port" in args:
+        port = int(args[args.index("--port") + 1])
 
     return ip, port
 
