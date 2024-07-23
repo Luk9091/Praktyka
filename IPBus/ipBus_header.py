@@ -36,9 +36,12 @@ class PacketHeader:
     rsvd: int = 0x0                                                         # 4 bits
     protocolVersion: int  = 2                                               # 4 bits
 
-    def __init__(self, packetType: int = PacketType["status"], id: int = 0) -> None:
-        self.packetType = packetType
-        self.packetID = id
+    def __init__(self, packetType: int = PacketType["status"], id: int = 0, bytesArray: bytearray = None) -> None:
+        if bytesArray is not None:
+            self.fromBytesArray(bytesArray)
+        else:
+            self.packetType = packetType
+            self.packetID = id
 
     def toBytesArray(self, endian: str = "big") -> bytearray:
         data = self.protocolVersion << 28 | self.rsvd << 24 | self.packetID << 8 | self.byteOrder << 4 | self.packetType
@@ -66,10 +69,16 @@ class TransactionHeader:
     typeID: int                                                             # 4 bits
     infoCode: int = 0xF                                                     # 4 bits
 
-    def __init__(self, transactionType: int, nWords: int, id: int = 0) -> None:
-        self.typeID = transactionType
-        self.words = nWords
-        self.transactionID = id
+    def __init__(self, transactionType: int = None, nWords: int = None, id: int = 0, bytesArray: bytearray = None) -> None:
+        if bytesArray is not None:
+            self.fromBytesArray(bytesArray)
+        elif transactionType is not None and nWords is not None:
+            self.typeID = transactionType
+            self.words = nWords
+            self.transactionID = id
+        else:
+            raise ValueError("TransactionHeader: Wrong arguments")
+
 
     def infoCodeString(self) -> str:
         if (self.infoCode in TransactionInfoCodeStringType):

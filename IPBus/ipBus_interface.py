@@ -17,14 +17,13 @@ class ADDRESS:
 
 class IPBus:
     address = ADDRESS("localhost", 50001)
-    nextPackeID: int
     status = StatusPacket()
     _id: int
 
     def __init__(self, IP_address: str | None = "localhost", IP_port: str | None = 50001):
-        if not IP_address is None:
+        if IP_address is not None:
             self.address.IP = IP_address
-        if not IP_port is None:
+        if IP_port is not None:
             self.address.port = IP_port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.settimeout(1)
