@@ -98,6 +98,14 @@ class TransactionHeader:
         self.typeID          =  data[0] >> 4 & 0xF
         self.infoCode        =  data[0] & 0xF
 
+    def __str__(self) -> str:
+        string = f"protocolVersion: {self.protocolVersion},\n"
+        string += f"transactionID: {self.transactionID},\n"
+        string += f"words: {self.words},\n"
+        string += f"typeID: {self.typeID},\n"
+        string += f"infoCode: {self.infoCode}"
+        return string
+
         
 
 class StatusPacket():

@@ -288,7 +288,7 @@ def set_bit(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.re
     if status != 0:
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
     
-    data[0] = (data[0] >> bits) & 1
+    data = (data >> bits) & 1
     return Error.OK, readToString(args[0], [data], False, base)
 
 def clear_bit(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.registers.TCM_REGISTERS) -> tuple[Error, str]:
@@ -328,7 +328,7 @@ def clear_bit(args: list, ipBus: IPBus.IPBus, register_dictionary: dict = IPBus.
     if status != 0:
         return Error.TRANSACTION, IPBus.TransactionInfoCodeStringType[status]
     
-    data[0] = (data[0] >> bits)
+    data = (data >> bits)
     return Error.OK, readToString(args[0], [data], False, base)
 
 

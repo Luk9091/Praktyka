@@ -19,6 +19,9 @@ class IPBus:
     address = ADDRESS("localhost", 50001)
     status = StatusPacket()
     _id: int
+    
+    header: PacketHeader = PacketHeader()
+    transaction: TransactionHeader = TransactionHeader(transactionType= 0, nWords=0, id=0)
 
     def __init__(self, IP_address: str | None = "localhost", IP_port: str | None = 50001):
         if IP_address is not None:
@@ -86,9 +89,9 @@ class IPBus:
         '''
         transactionType = TransactionType["read"] if not FIFO else TransactionType["nonIncrementingRead"]
         packetHeader = PacketHeader(PacketType["control"])
-        header = TransactionHeader(transactionType, nWords, id=self._id)
+        transaction = TransactionHeader(transactionType, nWords, id=self._id)
         toSend = packetHeader.toBytesArray("little")
-        toSend = [*toSend, *header.toBytesArray("little")]
+        toSend = [*toSend, *transaction.toBytesArray("little")]
         toSend = [*toSend, *startRegisterAddress.to_bytes(4, "little")]
 
         if not self.__writing(toSend):
@@ -99,13 +102,14 @@ class IPBus:
         if not status:
             return -1, None
 
-        header.fromBytesArray(data[0:4])
+        self.header.fromBytesArray(data[0:4])
+        self.transaction.fromBytesArray(data[4:8])
 
         readWords = []
         for i in range(8, len(data), 4):
             readWords.append(int.from_bytes(data[i:i+4], "little", signed=signed))
         
-        return header.infoCode, readWords
+        return self.transaction.infoCode, readWords
 
     def write(self, startRegisterAddress: int, data: list[int] | int, FIFO: bool) -> int:
         '''
@@ -141,8 +145,9 @@ class IPBus:
         if not status:
             return -1
 
-        header.fromBytesArray(data[0:4])
-        return header.infoCode
+        self.header.fromBytesArray(data[0:4])
+        self.transaction.fromBytesArray(data[4:8])
+        return self.transaction.infoCode
 
 
     def readModifyWriteBits(self, registerAddress: int, ANDmask: int, ORmask: int) -> int:
@@ -168,8 +173,10 @@ class IPBus:
         if not status:
             return -1, 0
 
-        header.fromBytesArray(data[4:8])
-        return header.infoCode, int.from_bytes(data[8:12], "little")
+        self.header.fromBytesArray(data[0:4])
+        self.transaction.fromBytesArray(data[4:8])
+
+        return self.transaction.infoCode, int.from_bytes(data[8:12], "little")
 
     def readModifyWriteSum(self, registerAddress: int, addend: int, signed_read: bool = False) -> tuple[int, int]:
         '''
@@ -197,8 +204,9 @@ class IPBus:
         if not status:
             return -1, 0
 
-        header.fromBytesArray(data[4:8])
-        return header.infoCode, int.from_bytes(data[8:12], "little", signed=signed_read)
+        self.header.fromBytesArray(data[0:4])
+        self.transaction.fromBytesArray(data[4:8])
+        return self.transaction.infoCode, int.from_bytes(data[8:12], "little", signed=signed_read)
     
     # @set
     # def timeout(self, value:oat | None):

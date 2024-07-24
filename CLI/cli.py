@@ -81,6 +81,8 @@ def execute_command(args: list, register_dictionary: dict = IPBus.registers.TCM_
     except ValueError:
         return Error.INVALID_COMMAND, "Invalid arguments"
 
+    if ipBus.transaction.infoCode != 0:
+        return Error.TRANSACTION, ipBus.transaction.infoCodeString()
     return error, ans
 
 def Init(args: list) -> State:
@@ -140,6 +142,8 @@ def CLI(args: list):
             # if output_file is not None:
             #     write_file(ipBus.address.IP, read, ans)
             print(ans)
+        # print(ipBus.header)
+        # print(ipBus.transaction)
     
 
 def write_file(dev, command, ans):
