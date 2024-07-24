@@ -7,6 +7,23 @@ The CLI is used to configure the IPBus system, to read and write registers, and 
 Register name could be find in [this file](https://onedrive.live.com/view.aspx?resid=7E7CBC355FE4EA69%21128&authkey=!AIHkXzLSmyeY43E), column: ***C***, sheet: ***TCM*** and ***PM***.\
 If you wand add register use **reg_adder.py** script. Copy display value to **register.py** file in correct dictionary.
 
+# Table of contents
+- [Usage](#usage)
+- [Commands](#commands)
+    - [IP](#ip)
+    - [Status](#status)
+    - [Read](#read)
+    - [Write](#write)
+    - [RMWBits](#rmwbits)
+    - [RMWSum](#rmwsum)
+    - [SetBits and ClearBits](#setbits-and-clearbits)
+- [Run parameters](#run-parameters)
+    - [Read data from file](#read-data-from-file)
+    - [Write data to file](#write-data-to-file)
+- [FAQ](#faq)
+    - [How enabled PM module?](#how-enabled-pm-module)
+
+
 ## Usage
 The IPBus CLI is a Python script that can be run from the command line.
 ```bash
@@ -399,4 +416,16 @@ out.csv
 
 
 
+# FAQ:
+## How enabled PM module?
+For A side:
+```bash
+172.20.75.180 << setBit SPI_MASK [PM_number]
+172.20.75.180 << setBit CH_MASK_A [PM_number]
+```
 
+For C side:
+```bash
+172.20.75.180 << setBit SPI_MASK [PM_number + 10]
+172.20.75.180 << setBit CH_MASK_C [PM_number]
+```
