@@ -98,7 +98,7 @@ class IPBus_logger:
             path.mkdir()
 
     def writeToFile(self, time, address, data):
-        out = f"{time},{address},"
+        out = f"{time},{address[0]},{address[1]},"
         for i in data:
             out += f"{i},"
         out += "\n"
