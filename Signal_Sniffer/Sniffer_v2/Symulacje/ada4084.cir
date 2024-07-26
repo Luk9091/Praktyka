@@ -1,0 +1,171 @@
+* ADA4084 SPICE Macro-model               
+* Function: Amplifier
+* 
+* Revision History:
+* Rev. 1.0 (Jan 2012) ADSJ-HH  
+* Rev. 2.0 (March 2015) ADGT-KF -- Revised voltage and current noise density
+* Copyright 2012 by Analog Devices
+*
+* Refer to http://www.analog.com/Analog_Root/static/techSupport/designTools/spiceModels/license/spice_general.html 
+* for License Statement. Use of this model indicates your acceptance
+* of the terms and provisions in the License Statement.
+* 
+*  Not modeled:
+*  +/-15V (30V) only, not checked at lower voltages
+*  No modeling over temperature for any parameters
+*
+* Parameters modeled include:VOS @ room, CMRR, PSRR, voltage noise,
+*  Vdo, gbw & phase margin, slew rate, CL Zout, Isy, ISC 
+*
+* Node assignments
+*                non-inverting input
+*                |  inverting input
+*                |  |  positive supply
+*                |  |  |  negative supply
+*                |  |  |  |  output
+*                |  |  |  |  |
+.SUBCKT ADA4084  1  2  99 50 45
+*
+* INPUT STAGE
+*
+Q1   5  11  301  QIN 1; 301
+Q2   6   2  302  QIN 1; 302
+Cx1 5   6  1.2E-12
+Q3   7  11  303  QIP 1; 303
+Q4   8   2  304  QIP 1; 304
+Cx2  7   8  1.2E-12
+DC1  2    11   DC
+DC2  11   2    DC
+Q5   4    9    99   QIP 1;  
+Q6   9    9    99   QIP 1
+Q7   3    10   50   QIN 1;  
+Q8   10   10   50   QIN 1
+R1   99   5    4.5E3
+R2   99   6    4.5E3
+R3   7    50   4.0E3
+R4   8    50   4.0E3
+RE1 301    3   12.0E+1
+RE2 302    3   12.0E+1
+RE3 303    4   12.0E+1
+RE4 304    4   12.0E+1
+IREF  9   10   60E-06
+GREF  9   10   POLY(1) (99,50) 0 2.5E-07
+EOS  1    11   POLY(4) (81,98)(83,98)(22,98)(73,98) -90E-6 1 1 1 1
+IOS  1    2     -10E-09
+CIN  1    2     1.1E-12
+CICM1  1   50   2.4E-12
+CICM2  2   50   2.4E-12
+Dinp1  1  99 DC
+Dinp2  50  1 DC
+Dinn1  2  99 DC
+Dinn2  50  2 DC
+GN1  1 98    POLY(1) (1,50) 53E-09 -2.15E-9
+GN2  2 98    POLY(1) (2,50) 56E-09 -2.11E-9
+*
+G101 98 211 POLY(2) (5,6) (7,8) 0 5.3E-04 5.3E-04
+R101 211 98 1.0E6
+*
+E201 311 98 POLY(1) (211,98)0 2.0E+0 
+R202 311 321 1.8E+3;  
+C202 311 321 8E-16
+R203 321 98  1.8E+3
+*
+E3  252  98 (321 98) 2E-0
+R31 252 253 1.0E+3
+C31 253 252 9E-11; -12
+R32 253 98 1.0E+3
+* 
+* GAIN STAGE
+*
+G2   98 251 (253, 98) 1.0E-06
+R5  251 98 8.0E5
+RF  251 250 44.0E+00
+CF  245 250 12.5E-11
+EF (245 98) (45,98) 1
+D3  251 451 DX
+D4  452 251 DX
+V1  451 98 -0.038 ;  
+V2  452 98 -0.29
+*
+* CMRR
+*
+ECM   72 98 POLY(2) (1,98) (2,98) 0 1.714E-02 1.714E-02
+RCM1  72 73 3.061E+01
+RCM2  73 98 7.958E-03
+CCM1  72 73 1.0E-6
+*
+* PSRR
+*
+EPSY 21 98 POLY(1) (99,50) -351.271E+00 11.709E-00
+RPS1 21 22 2.341E+03
+RPS2 22 98 7.958E-04
+CPS1 21 22 1.000E-06
+*
+* VOLTAGE NOISE 
+*
+VN1 80 98 0
+RN1 80 98 43.5E-3
+*HN  81 98 VN1 3.9
+HN  81 98 VN1 3.35
+RN2 81 98 1
+*
+* FLICKER NOISE CORNER 
+*
+DFN 82 98 DNOISE 1000
+IFN 98 82 DC 1E-03
+DFN2 182 98 DNOISE
+IFN2 98 182 DC 1E-06
+GFN 83 98 POLY(1) (182,82) 1.00E-13 1.00E-04
+RFN 83 98 1
+*
+D60 60 0 DN1 1000
+I60 0 60 1M
+D61 61 0 DN4
+I61 0 61 1U
+D62 62 0 DN3
+I62 0 62 1U
+D63 63 0 DN2
+I63 0 63 1U
+*G60 11 50 61 60 .007
+*G61 2 50 61 60 .1
+*G62 11 2 62 60 .000092
+G60 11 50 61 60 .0000177
+G61 2 50 61 60 .0000177
+G62 11 2 62 60 .0000052
+*
+* INTERNAL VOLTAGE REFERENCE
+*
+EREF 98  0 POLY(2) (99,0) (50,0) 0 .5 .5
+GSY  99 50 POLY(1) (99,50) 203E-6 1.036E-6   
+*
+* OUTPUT STAGE
+*
+Q33  450 41 99 POUT
+Cco1 450 41  2.5E-12
+RB1  40 41 1.5E3
+EB1  99 40 POLY(1) (98,251) 7.535E-01 1; 
+Q34  450 43 50 NOUT
+Cco2 450 43  5E-12
+RB2  42 43 2.0E3
+EB2  42 50 POLY(1) (251,98) 7.520E-01  1;
+Lout 45 450 1E-09 
+*
+* MODELS
+*
+.MODEL DC D(IS=1E-14,CJO=1E-15)
+.MODEL DX D(IS=1E-14,CJO=1E-15)
+.MODEL DY D(IS=1E-16,RS=0.1)
+.MODEL DIN1 D(RS=5.358 KF=56E-15 AF=1)
+.MODEL DIN2 D(RS=5.358 KF=56E-15 AF=1)
+.MODEL DN1 D IS=1E-16
+.MODEL DN2 D IS=1E-16 AF=1 KF=1.05E-17
+.MODEL DN3 D IS=1E-16 AF=1 KF=2.8E-17
+.MODEL DN4 D IS=1E-16 AF=1 KF=4.5E-17
+.MODEL DNOISE D(IS=1E-16,RS=1E-3,KF=1.14E-11)
+.MODEL QIN NPN(BF=130 VA=200 IS=0.5E-16)
+.MODEL QIP PNP(BF=80 VA=140 IS=0.5E-16)
+.MODEL NOUT NPN(BF=140 VA=350 IS=0.5E-16 BR=8.4 VAR=20 RC=4.0E1)
+.MODEL POUT PNP(BF=80  VA=130 IS=0.5E-16 BR=5   VAR=20 RC=6.0E1)
+*
+.ENDS ADA4084
+*
